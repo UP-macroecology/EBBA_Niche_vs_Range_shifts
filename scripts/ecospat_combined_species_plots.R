@@ -1,10 +1,10 @@
-##Plots of summarised output dataframes produced by ecospat_output_summation.R File pathways made relative to ".Data/" need to be checked##
+## Plots of summarised output dataframes produced by ecospat_output_summation.R File pathways made relative to ".Data/" need to be checked##
 
-##Read in dataframes from ecospat_output_summation.R or have in environment to begin#
+## Read in dataframes from ecospat_output_summation.R or have in environment to begin#
 
 par(mar=c(2,2,2,2))
 
-#line plots of buffer extent (x) against key metrics (y)
+# line plots of buffer extent (x) against key metrics (y)- Sensitivity analyses for buffer size
 tiff(filename = "/.Data//Europe_ebba_species/buffer_SA_Metrics_test_n=35species.tiff",width=1400,height=2000,res=300)
 
 par(mfrow=c(3,2))
@@ -35,7 +35,7 @@ lines(bufferdf$mean.niche.centroid.shift+bufferdf$niche.centroid.shift.sd ~ buff
 
 dev.off()
 
-tiff(filename = "/.Data//Europe_ebba_species/buffer_SA_p-value_test_n=35species.tiff",width=1400,height=2000,res=300)
+tiff(filename = "/.Data//Europe_ebba_species/buffer_SA_p-value_test.tiff",width=1400,height=2000,res=300)
 
 par(mfrow=c(3,2))
 
@@ -67,7 +67,7 @@ dev.off()
 
 par(mfrow=c(1,1))
 #plot niche vs range shifts#
-tiff(filename = "/.Data//Europe_ebba_species/preliminary niche vs. range shift plot (WRONG).tiff",width=1000,height=1000,res=150)
+tiff(filename = "/.Data//Europe_ebba_species/preliminary niche vs. range shift plot.tiff",width=1000,height=1000,res=150)
 
 plot(df$RangeShiftMagnitude ~ df$niche.centroid.shift, main="All Species niche vs. range centroid shift",xlab="Niche centroid shift (PCA axis scale)",ylab="Range centroid shift (km)",pch=20)
 

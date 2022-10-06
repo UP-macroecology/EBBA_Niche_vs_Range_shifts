@@ -210,7 +210,7 @@ df<-merge(df,df1,by=c("L1","L2"))
 names(df)[names(df)=="L1"]<-"Test"
 names(df)[names(df)=="L2"]<-"species"
 
-#Test types determine the p values for D, I, stability, unfilling etc. but actual values remain unchanged, can examine a bit below, but no impact on following figures, so can drop 3/4 tests before moving on
+
 
 write.csv(df,".Data//Europe_ebba_species/Niche_Analyses_summaries/All_test_data.csv")
 
@@ -297,6 +297,8 @@ for(spec in specs){
 #Cwrite output to file
 write.csv(rel_niche_dynamics,".Data//Europe_ebba_species/Niche_Analyses_summaries/relative_niche_indeces.csv")
 
+#Test types determine the p values for D, I, stability, unfilling etc. but actual values remain unchanged, can examine a bit below, but no impact on following figures, so can drop 3/4 tests before moving on
+
 
 ##Add Niche centroids and shifts to analyses dataframe##
 dyndf<-melt(niche.dyn)#Coerce to dataframe
@@ -366,7 +368,7 @@ write.csv(df,".Data//Europe_ebba_species/Niche_Analyses_summaries/All_Species_An
 
 df$RangeShiftMagnitude<-df$RangeShiftMagnitude/1000#Convert metres to km for range shift
 
-####At this point I need to define groups of species to analyse, whether taxonomic or functional, then I can summarize and compare niche and range shifts across these groups (though analyses above may also need refining)####
+####At this point need to define groups of species to analyse, whether taxonomic or functional, then these can be summarized to compare niche and range shifts across these groups (though analyses above may also need refining)####
 df$species
 
 df$Groups<-round(seq(from=1,to=5,length.out=nrow(df)),digits=0)##Add arbitrary group ID's for playing around with, as binomials are alphabetised, generated ID's where adjascent rows more likely to be in the same group, so groups are slighly less arbitrary and likley to contain species in the same genus

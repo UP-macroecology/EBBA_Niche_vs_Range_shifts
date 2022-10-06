@@ -15,11 +15,17 @@ MaskCountries<-subset(Worldcountries,ADMIN %in% c("Northern Cyprus","Cyprus","Ak
 KeepCountries<-subset(Worldcountries,!(ADMIN %in% c("Northern Cyprus","Cyprus","Akrotiri Sovereign Base Area","Turkey","Russia", "Kazakhstan", "Georgia", "Armenia", "Azerbaijan",'Iran')))
 
 Canaries<-subset(Worldcountries,ADMIN %in% "Spain")
+
 plot(Canaries)
+
 ext(Canaries)
+
 Canaries<-terra::crop(Canaries,extent(c(-18.1672257149999, -14, 27.6422386740001,32)))
+
 plot(Canaries)
+
 MaskCountries<-spRbind(MaskCountries,Canaries)
+
 plot(MaskCountries)
 
 #Convert to proj cooordinates

@@ -37,15 +37,10 @@ names(Bioclim10s)<-bioclim
 ####LARGE ANALYSIS LOOP####
 foreach(i =unique(EBBA1$species),.packages=c("sp","rgdal","terra","raster","ggmap","maptools","rgeos","ecospat","scales","ade4","tidyr","plyr","dplyr"))%dopar%{
   
-#foreach(i =c("Emberiza schoeniclus", "Grus grus"),.packages=c("sp","rgdal","terra","raster","ggmap","maptools","rgeos","ecospat","scales","ade4","tidyr","plyr","dplyr"))%dopar%{
-
-
 ##TEST LOOPS##
 #4 arbitrary species#
 #for(i in c("Emberiza schoeniclus","Poecile montanus","Grus grus","Cygnus olor")){
-#Removing shearwater and king eider because their coastal distribution made too many NAs (problem with overzealous landmass clipping, need to resolve with better masking layer!)
 
-  
 #Isolate single species to simplify explorations#
 Sp_EBBA2<-subset(EBBA2,EBBA2$brdlf__==i)
 Sp_EBBA1<-subset(EBBA1,EBBA1$species==i)
@@ -93,7 +88,7 @@ saveRDS(RangeStability,file = paste("./Data/Europe_ebba_species/",i,"_RangeStabi
 
 write.csv(EBBA_Cells,paste("./Data/Europe_ebba_species/EBBA_pres_Abs_comparison_",i,".csv",sep=""))
 
-#Sample background space using random points#- Trial different buffer extents and impacts,start 300-700km, in 100km steps (error running at 900km)
+#Trial different buffer extents and impacts,start 300-700km, in 100km steps (error running at 900km)
 for(j in seq(from=300000,to=700000,by=100000)){
   presence_buffer80s<-raster::buffer(Sp_EBBA1,width=j,disolve=T,byid=T)
   bg_buf80s<-extent(presence_buffer80s)
@@ -107,19 +102,6 @@ for(j in seq(from=300000,to=700000,by=100000)){
   spBioclim80s<-mask(x=spBioclim80s,mask=presence_buffer80s)
   spBioclim10s<-mask(x=spBioclim10s,mask=presence_buffer10s)
 
-
-   
-##code for getting bachground 10Xoccurance for all species, but necessarily allows duplicate points. I was overcomplicating, so preliminarily replaced with a full sample of environment cells within the buffer##
-#spBackground80s<-list()
-#spBackground10s<-list()
-#  for (k in seq(1:10)){
-#    spBackground80s[[k]]<-dismo::randomPoints(spBioclim80s,nrow(Sp_EBBA1))
-#    spBackground10s[[k]]<-dismo::randomPoints(spBioclim10s,nrow(Sp_EBBA2))
-#  }
-
-#spBackground80s<-rbind(spBackground80s[[1]],spBackground80s[[2]],spBackground80s[[3]],spBackground80s[[4]],spBackground80s[[5]],spBackground80s[[6]],spBackground80s[[7]],spBackground80s[[8]],spBackground80s[[9]],spBackground80s[[10]])
-
-#spBackground10s<-rbind(spBackground10s[[1]],spBackground10s[[2]],spBackground10s[[3]],spBackground10s[[4]],spBackground10s[[5]],spBackground10s[[6]],spBackground10s[[7]],spBackground10s[[8]],spBackground10s[[9]],spBackground10s[[10]])
   #Extract Species-climate data and enviro background data as dataframesand remove NA's in extraction.
   EBBA1Enviros<-(terra::extract(spBioclim80s,Sp_EBBA1))
   EBBA1Enviros<-EBBA1Enviros[!rowSums(!is.finite(EBBA1Enviros)),]
@@ -139,30 +121,30 @@ pca.cal <- dudi.pca(rbind(Background10s,Background80s), scannf = FALSE, nf = 2)
 
 # Plot variable contribution with "ecospat.plot.contrib()"
 tiff(filename = paste("./Data/Europe_ebba_species/",i," Buffer ",j/1000,"km environmental variable contribution.tiff",sep=""),width=1000,height=1000,res=125)
-ecospat.plot.contrib(contrib = pca.cal$co, eigen = pca.cal$eig) # The correclation circle indicates the contribution of original predictors to the PCA axes.
+ecospat.plot.contrib(contrib = pca.cal$co, eigen = pca.cal$eig) # The correlation circle indicates the contribution of original predictors to the PCA axes.
 dev.off()
 
-###Run Ecospat Analyses###
+### Run Ecospat Analyses ###
 
-#calculate the PCA scores
+# calculate the PCA scores
 historic.scores <- suprow(pca.cal,EBBA1Enviros[,1:19])$li
 recent.scores <- suprow(pca.cal, EBBA2Enviros[,1:19])$li
 historic.env.scores <- suprow(pca.cal, Background80s[,1:19])$li
 recent.env.scores <- suprow(pca.cal, Background10s[,1:19])$li
 climate.allcell.scores <- pca.cal$li
 
-#Calculate the occurence density grids
+# Calculate the occurence density grids
 grid.clim.historic <- ecospat.grid.clim.dyn(climate.allcell.scores, historic.env.scores, historic.scores, R = 100)
 grid.clim.recent <- ecospat.grid.clim.dyn(climate.allcell.scores, recent.env.scores, recent.scores, R = 100)
 
-# Calculate niche overlap-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Calculate niche overlap
 # Compute Schnoer´s D, index of niche overlap
 D.overlap <- ecospat.niche.overlap(grid.clim.historic, grid.clim.recent, cor = TRUE)$D # THe niche overlap between the historic and recent period is 24.13%
 print(paste(i,", ",j/1000,"km Buffer, Schoners D=",D.overlap))
-# Niche equivalency test according to Warren et al. -------------------------------------------------------------------------------------------------------------------------------------------
-#It is recommended to use at least 1000 replications for the similarity test.
+# Niche equivalency test according to Warren et al. 
+# It is recommended to use at least 1000 replications for the similarity test.
 
-#version for niche shift- Add option for Analogue (in addition to Non-Analogue) climates
+# version for niche shift- Add option for Analogue (in addition to Non-Analogue) climates
 shift.test.NA<-ecospat.niche.similarity.test(grid.clim.historic, grid.clim.recent, rep = 1500, overlap.alternative = "lower", expansion.alternative = "higher", stability.alternative = "lower", unfilling.alternative = "higher", intersection = NA, rand.type = 2)
 
 saveRDS(shift.test.NA,file = paste("./Data/Europe_ebba_species/Niche_Analyses_summaries/",i,"_Buffer_",j/1000,"km_Niche_similarity_shift_NA_test.Rds",sep=""))
@@ -172,7 +154,7 @@ shift.test.int<-ecospat.niche.similarity.test(grid.clim.historic, grid.clim.rece
 saveRDS(shift.test.int,file = paste("./Data/Europe_ebba_species/Niche_Analyses_summaries/",i,"_Buffer_",j/1000,"km_Niche_similarity_shift_int_test.Rds",sep=""))
 
 
-#version for niche conservatism
+# version for niche conservatism
 cons.test.NA<-ecospat.niche.similarity.test(grid.clim.historic, grid.clim.recent, rep = 1500, overlap.alternative = "higher", expansion.alternative = "lower", stability.alternative = "higher", unfilling.alternative = "lower", intersection = NA, rand.type = 2)
 
 saveRDS(cons.test.NA,file = paste("./Data/Europe_ebba_species/Niche_Analyses_summaries/",i,"_Buffer_",j/1000,"km_Niche_similarity_conservatism_NA_test.Rds",sep=""))
@@ -198,10 +180,10 @@ tiff(filename = paste("./Data/Europe_ebba_species/Niche_Analyses_summaries/",i,"
 ecospat.plot.overlap.test(cons.test.int, "D", "Niche Similarity")
 dev.off()
 
-# delimiting niche categories and quantifying niche dynamics in analogue climates --------------------------------------------------------------------------------------------------------------
+# delimiting niche categories and quantifying niche dynamics in analogue climate 
 niche.dyn <- ecospat.niche.dyn.index(grid.clim.historic, grid.clim.recent, intersection = NA)#run with 0=only overlapping enviros, NA= all available enviros
 
-niche.dyn$dynamic.index.w # only overlapping:unfilling = 0.0166; stability = 1; expansion = 0.0. BUT, for all climates:unfilling = 0.0198; stability = 0.9999; expansion = 0.000140.
+niche.dyn$dynamic.index.w 
 
 # visualizing niche categories, niche dynamics and climate analogy between ranges
 tiff(filename = paste("./Data/Europe_ebba_species/Niche_Analyses_summaries/",i,"_Buffer_",j/1000,"km_Niche_and_enviro_space.tiff",sep=""),width=1000,height=1000,res=150)

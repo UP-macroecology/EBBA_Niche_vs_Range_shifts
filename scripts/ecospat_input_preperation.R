@@ -26,7 +26,7 @@ Bioclim80s <- stack(list.files(file.path("./Data/Europe_Bioclimate_1981-90_2009-
 
 Bioclim10s <- stack(list.files(file.path("./Data/Europe_Bioclimate_1981-90_2009-2018/2009-2018"), pattern = ".tif$", full.names = TRUE))
 
-##Suplement bioclims with LUH2 data from middle years
+##Suplement bioclims with LUH2 data from middle years - Investigated but discared at time of departure. Long-term averages should be used instead of midpoint years if LUH2 use is picked up again.
 #Maybe remove secma and secmb? as these are not in gridcell fraction units as other Luh2 layers.
 LandCover85 <- stack(list.files(file.path("./Data/LUH2_DAT"), pattern = "1985_luh2.50km.tif", full.names = TRUE))
 

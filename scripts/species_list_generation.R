@@ -40,12 +40,16 @@ CRS(albers_projection)#to copy proj4string, unsure of direct extraction
 ## Give CRS to EBBAs ##
 proj4string(EBBA1)<-EBBA_CRS
 proj4string(EBBA2)<-EBBA_CRS
+
 ##Align CRS across datasets to match the equal area CHELSA climate reprojection##
 EBBA1<-spTransform(EBBA1,CRS("+proj=aea +lat_0=30 +lon_0=10 +lat_1=43 +lat_2=62 +x_0=0 +y_0=0 +ellps=intl +units=m +no_defs"))
+
 EBBA2<-spTransform(EBBA2,CRS("+proj=aea +lat_0=30 +lon_0=10 +lat_1=43 +lat_2=62 +x_0=0 +y_0=0 +ellps=intl +units=m +no_defs"))
+
 EBBA2_Grid<-spTransform(EBBA2_Grid,CRS("+proj=aea +lat_0=30 +lon_0=10 +lat_1=43 +lat_2=62 +x_0=0 +y_0=0 +ellps=intl +units=m +no_defs"))
 
 EBBA1<-intersect(EBBA1,KeepCountries)
+
 EBBA2<-intersect(EBBA2,KeepCountries)
 
 
@@ -214,17 +218,18 @@ EBBA2<- as.data.frame(EBBA2) %>% group_by(brdlf__) %>% filter(n()<(0.9*EBBAcells
 Sp_List<-unique(EBBA2$brdlf__) #Now 326 species
 Sp_List <- sub(" ", "_", Sp_List)#replace space with underscore to match IUCN file names
 
-##Filter Out species with <70% range in EBBA comparible cells. Range from IUCN Red List gloabl polgons##
-#List IUCN species polygons# !!Make sure polygons are unzipped in folder before attempting!!
+##Filter Out species with <5% range in EBBA comparible cells. Range from IUCN Red List gloabl polgons##
+#List IUCN species polygons# 
+#!!Make sure polygons are unzipped in folder before attempting!!#
 target_path <- file.path(".Data//IUCN_range_polys/All_shapefiles")
 
 IUCN_species <- list.files(target_path, full.names = F, pattern = ".shp")
 IUCN_species <- substr(IUCN_species,1,nchar(IUCN_species)-13)
 
-#Match IUCN names to EBBA species and identify unmatched EBBA species to harmonise#
+#Match IUCN names to EBBA species and identify unmatched EBBA species to harmonize#
 Matched_sp<-IUCN_species[which(IUCN_species %in% Sp_List)]
 
-unmatched_sp<-Sp_List[which(!Sp_List %in% IUCN_species)]##Examine these names and find suitable replacement for harmonisation
+unmatched_sp<-Sp_List[which(!Sp_List %in% IUCN_species)]##Examine these names and find suitable replacement for harmonization
 
 #Harmonisation notes (changed IUCN file names to match those used in EBBA)
 # - Carduelis_chloris -> Chloris_chloris
@@ -244,16 +249,14 @@ unmatched_sp<-Sp_List[which(!Sp_List %in% IUCN_species)]##Examine these names an
 # - Parus_cinctus -> Poecile_cinctus
 # - Sturnus_roseus -> Pastor_roseus
 # - Hippolais_caligata -> Iduna_caligata
-#!! Passer_italiae not mapped by IUCN!! But is European, so should be reatained in species list#
-#Filter eBird to only species in the EBBA species list#
-#loop through ebird data for each species, calculate range overlap with EBBA Grid - just intersect points? OR calculate MCP and calculate polygon overlap?
+#!! Passer_italiae not mapped by IUCN!! But is European, so should be retained in species list#
 
 #List IUCN files with full names#
 IUCN_polys <- list.files(target_path, full.names = T, pattern = ".shp")
 #Restrict IUCN polygons to just species included in the species list
 IUCN_polys<-IUCN_polys[grep(paste(Sp_List, collapse="|"),IUCN_polys)]
 
-##Read in EBBA polygons and restict to retained region
+##Read in EBBA polygons and restrict to retained region
 EBBA2_poly<-readOGR("./Data/input_data/EBCC/EBBA2/ebba2_grid50x50_v1/ebba2_grid50x50_v1.shp")%>%
   spTransform(CRS('+proj=laea +lat_0=10 +lon_0=-81 +ellps=WGS84 +units=m +no_defs'))%>%
   gBuffer(byid=TRUE, width=0)
@@ -291,7 +294,7 @@ write.csv(RangeCoverdf,"./Data/IUCN_poly_covered.csv")
 
 hist(RangeCoverdf$range_cover_percent, main="Range within EBBA Region", xlab="Percentage range covered")
 
-Sp_list<-subset(RangeCoverdf,range_cover_percent>5)$species#Likely threshold not defenisble, method needs reconsidering
+Sp_list<-subset(RangeCoverdf,range_cover_percent>5)$species #Likely threshold not defensible, method needs reconsidering
 
 write.csv(Sp_List,"./Data/Change_Data_request_species_list.csv")
 

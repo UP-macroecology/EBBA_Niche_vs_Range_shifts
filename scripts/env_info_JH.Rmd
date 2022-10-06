@@ -12,7 +12,7 @@ bibliography: references.bib
 ```{r include=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(tidy.opts=list(width.cutoff=120), tidy=FALSE)
-knitr::opts_knit$set(root.dir = "C:\\Users\\James Hunter\\Desktop\\Hunter_NichevsRangeShift_2022")
+knitr::opts_knit$set(root.dir = ".\EBBA_NichevsRangeShift_2022")
 
 ```
 
@@ -83,7 +83,7 @@ vars <- c("pr", "tas", "tasmax", "tasmin")
 months <- 1:12
 years <- c(1984:1990)
 # path to folder where downloaded data should be saved:
-target_path <- file.path("//ibb-fs01.ibb.uni-potsdam.de//users$//hunter") # "." = placeholder for the current working directory
+target_path <- file.path(".") # "." = placeholder for the current working directory
 # create destination folder if it doesn't exist yet:
 if(!dir.exists(target_path)){
   dir.create(target_path, recursive = TRUE)
@@ -99,7 +99,7 @@ vars <- c("pr")
 months <- 10
 years <- c(2013)
 # path to folder where downloaded data should be saved:
-target_path <- file.path(".Data//CHELSA_global_climate_dat_1980-1990+1999-2019/redownloaded_buggy_layers") # "." = placeholder for the current working directory
+target_path <- file.path("./Data/CHELSA_global_climate_dat_1980-1990+1999-2019/redownloaded_buggy_layers") # "." = placeholder for the current working directory
 # create destination folder if it doesn't exist yet:
 if(!dir.exists(target_path)){
   dir.create(target_path, recursive = TRUE)
@@ -124,12 +124,12 @@ require(terra)
 require(dplyr)
 require(raster)
 require(gdalUtilities) # package to use gdal functions via R (does not require installing GDAL)
-EBBA2_Grid <- file.path(".", "input_data", "EBCC", "EBBA2", "ebba2_grid50x50_v1")
+EBBA2_Grid <- file.path("./Data", "input_data", "EBCC", "EBBA2", "ebba2_grid50x50_v1")
 
 # read in rasterized EBBA2 grid
 
 # project mask from lat/lon to equal area projection of the two final grids:
-input <- file.path(".", "input_data", "Europe_ebba_grid_50km.tif")
+input <- file.path("./Data", "input_data", "Europe_ebba_grid_50km.tif")
 
 #testing simpler code#
 testmask<-rast(input)
@@ -175,9 +175,6 @@ if(!dir.exists(reproj_path)){
 resolutions <- c("50km")
 
 ###Identify and investigate buggy chelsa layers!###
-##58,89,151,387 bugged AGAIN! redownloading was not the issue ...
-#Buggylayers<- chelsa_data[c(58,151,235,311)]
-#Buggylayers
 
 # loop through the two resolutions:
 for(res in resolutions){
@@ -287,15 +284,7 @@ for(res in resolutions){
                             tmax = tasmax_mean
   )
   
-  # create empty spatial brick for output and write bioclim data in it:
- # out@data@nlayers <- as.integer(19)
-  
- # for(k in 1:nlayers(out)){
-#    out[[k]][mask_inds] <- biovars[,k]
-#    print(k)
-#  }
-  
-#  names(out) <- colnames(biovars)
+ 
   
   # write individual rasters into files:
   raster::writeRaster(biovars, 
