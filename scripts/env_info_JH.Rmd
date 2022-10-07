@@ -8,7 +8,7 @@ output:
     df_print: paged
 bibliography: references.bib
 ---
- File pathaways made relative to ".Data/" need to be checked
+ File pathways made relative to ".Data/" need to be checked
 ```{r include=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(tidy.opts=list(width.cutoff=120), tidy=FALSE)
@@ -20,13 +20,13 @@ knitr::opts_knit$set(root.dir = ".\EBBA_NichevsRangeShift_2022")
 
 ## General information
 CHELSA environmental layers [@karger_climatologies_2017] are global maps of climate-model generated surface temperature and precipitation estimates, statistically downscaled to a spatial resolution of 30 arc sec. The data are available at different temporal aggregations (daily, monthly, as long-term climatology) for the time period 1980-2013. 
-Since this code accompanies the Breeding Bird Survey (BBS) study, we process the data in two alternative ways: i) we crop the global data at the original resolution to the extent of the conterminous United States and ii) we reproject the data to a coarser resolution of 40 km (because this matches the buffer radius of the BBS route buffers) and crop it to the extent of the conterminous United States.
+Since this code accompanies the Breeding Bird Survey (EBBA) study, we process the data in two alternative ways: i) we crop the global data at the original resolution to the extent of EBBA survey grid and ii) we reproject the data to a coarser resolution of 50 km (because this matches the size of cells in the EBBA grid) and crop it to the extent of the EBBA grid.
 
 ## Downloading CHELSA
 
 The CHELSA repository is available [here](https://envicloud.wsl.ch/#/) to download layers through the browser, but we can also use R to download data through a script.
 
-In the following code chunk, we download the required global climate layers for each month of the years 1980-1983 (the "historic" time period and the preceding year, but this is variable, depending on what we ultimately decide) into a user-specified folder. The downloaded data are pretty big, so we only download the variables we need to create the bioclim climatologies (monthly tasmax, tasmin, pr) and the mean monthly temperature (tas) for the time period.
+In the following code chunk, we download the required global climate layers for each month of the years 1984-1990 (the missing years from the "historic" time period in the datashare and the preceding year, but this is variable, depending on what we ultimately decide) into a user-specified folder. The downloaded data are pretty big, so we only download the variables we need to create the bioclim climatologies (monthly tasmax, tasmin, pr) and the mean monthly temperature (tas) for the time period.
 
 ```{r message=FALSE, include=FALSE}
 # Export code from this markdown into R doc for testing etc.
@@ -112,7 +112,7 @@ chelsa_get2(target_path, years, vars, months, method = "curl")
 
 ## Reprojecting and masking CHELSA layers
 
-Now we have the data in our target folder. Before processing them into bioclim variables for the selected time periods, let's crop them to the extent of European continent to reduce processing time. For this, it is useful to first create mask rasters. These rasters have the value 1 in all terrestrial areas and `NA` over water and outside the study area. They should have the same resolution, projection and extent as the final grids: for our two methods, we need resolutions of 1km and 40km. Thus, we first need to project both mask rasters using an equal area projection, so that afterwards raster cells all have the same size (this is not the case in a lat/long grid, because area gets distorted towards the poles).
+Now we have the data in our target folder. Before processing them into bioclim variables for the selected time periods, let's crop them to the extent of European continent to reduce processing time. For this, it is useful to first create mask rasters. These rasters have the value 1 in all terrestrial areas and `NA` over water and outside the study area. They should have the same resolution, projection and extent as the final grids: for our two methods, we need resolution of 50km. Thus, we first need to project both mask rasters using an equal area projection, so that afterwards raster cells all have the same size (this is not the case in a lat/long grid, because area gets distorted towards the poles).
 
 To create the masks, we can use the EBBA2 shapefile which contains the extent of the new Atlas grid coverage. This is enclosed in the `input_data` folder of this repository. 
 
@@ -134,7 +134,6 @@ input <- file.path("./Data", "input_data", "Europe_ebba_grid_50km.tif")
 #testing simpler code#
 testmask<-rast(input)
 plot(testmask)
-#writeRaster(EuFishnet,file=file.path("C:/Users/James Hunter/Desktop/Hunter_NichevsRangeShift_2022", "input_data", "Europe_mask.asc"),overwrite=T)
 
 #read in downloaded chelsa data
 target_path <- file.path(".Data//CHELSA_global_climate_dat_1980-1990+1999-2019")
@@ -174,9 +173,7 @@ if(!dir.exists(reproj_path)){
 }
 resolutions <- c("50km")
 
-###Identify and investigate buggy chelsa layers!###
-
-# loop through the two resolutions:
+# loop through the resolutions: #we only need 1 resolution for EBBA project, loop is holdover from origninal code, works fine though.
 for(res in resolutions){
   
   print(paste0("Processing resolution ", res, "."))
@@ -201,7 +198,6 @@ for(res in resolutions){
                             overwrite = TRUE,
                             tr = res(mask_res),
                             r = "bilinear", # resampling method
-                            
                             s_srs = "EPSG:4326",
                             t_srs = albers_projection,
                             te = c(mask_ext[1], mask_ext[3], mask_ext[2], mask_ext[4])
@@ -217,7 +213,7 @@ for(res in resolutions){
 }
 ```
 
-We can now use these layers to calculate `bioclim` variables for the selected time period covering the conterminous US at 1km and 40km resolution.
+We can now use these layers to calculate `bioclim` variables for the selected time period covering the EBBA sampling grid at 50km resolution.
 
 ``` {r eval = FALSE}
 require(dismo) # requires spatial data formats of raster package -> no transition to terra possible
@@ -238,9 +234,9 @@ for(res in resolutions){
   
   print(paste0("Processing resolution ", res, "."))
   
-  # list monthly CHELSA data for europe 2009-2018 (repeeated with 1981-1990 data too)
+  # list monthly CHELSA data for europe 2009-2018 (repeated with 1981-1990 data too)
   chelsa <- list.files(file.path(".Data//Chelsa_ebba_reprojection_5km_ee/1980-1990"), pattern = res, full.names = TRUE)
-  years<-1981:1990
+  years<-2009:2018
   
   # load mask (use raster package since this is used to create a spatial brick which is required by dismo::biovars())
   mask <- raster(chelsa[1])
@@ -273,10 +269,6 @@ for(res in resolutions){
       mean
   }
   
-  # pull out only the non-NA values (terrestrial area, makes the biovars function twice as fast)
-  #pr_mean <- pr_mean[mask_inds]
-  #tasmin_mean <- tasmin_mean[mask_inds]
-  #tasmax_mean <- tasmax_mean[mask_inds]
   
   # calculate bioclim variables (be very patient!)
   biovars <- dismo::biovars(prec = pr_mean,  
@@ -323,7 +315,7 @@ These are the LUH2 land use classes:
 ## Downloading LU2
 Different releases of the data are available [here](https://luh.umd.edu/data.shtml). We have already downloaded the LUH2 v2h release (10/14/16, historical reconstruction 850-2015) to our group's data share. The data set is provided in `*.nc` (netCDF) format.
 
-With the data on the data share, we can now crop and project the data to match the BBS study. Note that LUH2 data are not available at the fine 1km resolution, so instead of buffering from 1km cells (method i)) we only project to an equal area representation, keeping the resolution approximately the same for this method (around 27km at the equator).
+With the data on the data share, we can now crop and project the data to match the EBBA study.
 
 ```{r eval=FALSE}
 require(ncdf4)
@@ -343,7 +335,7 @@ luh2_path <- "//ibb-fs01.ibb.uni-potsdam.de/daten$/AG26/Arbeit/datashare/data/en
 luh2 <- ncdf4::nc_open(file.path(luh2_path, "states.nc"))
 # names of the land-use classes:
 lu_classes <- names(luh2$var)[1:14]
-# years for which data should be extracted-No data beyond 2015 in download:
+# years for which data should be extracted-No data beyond 2015, need to download simulated climate layers to bring up to 2018:
 years <- c(1980:2015)
 # resolutions for which data should be extracted:
 resolutions <- c("50km")
@@ -371,7 +363,7 @@ for(lu in lu_classes){
   # reproject to 50km resolution and crop to mask:
   
   # files of current land use class:
-  files <- list.files(file.path(luh2_data_path), full.names = TRUE, pattern = paste0(lu, ".*luh2.tif$")) # name contains land use class and "luh2.tif" but not the .aux extention ($)
+  files <- list.files(file.path(luh2_data_path), full.names = TRUE, pattern = paste0(lu, ".*luh2.tif$")) # name contains land use class and "luh2.tif" but not the .aux extension ($)
   # loop over resolutions:
   for(res in resolutions){
     # mask for current resolution
