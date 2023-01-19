@@ -74,7 +74,6 @@ ggplot(world) +
   lims(x = c(-30, 50), y = c(30, 80)) +
   theme(legend.position = "bottom") +
   guides(colour=guide_legend(nrow=2,byrow=TRUE))
-# -> looks like:
 # species absence = issue: "COORDINATE_ROUNDED;COUNTRY_DERIVED_FROM_COORDINATES;RECORDED_DATE_INVALID"
 # species presence = issue: "COORDINATE_ROUNDED;COUNTRY_DERIVED_FROM_COORDINATES;RECORDED_DATE_INVALID;INDIVIDUAL_COUNT_INVALID"
 
@@ -134,9 +133,6 @@ EBBA1 %>%
   filter(issue == "TAXON_MATCH_NONE;BASIS_OF_RECORD_INVALID") # 1 entry
 
 
-
-
-
 # EBBA2 data: ----
 EBBA2_dt <- read.csv(file.path(datashare_EBCC, "EBBA2", "ebba2_data_occurrence_50km.csv"), sep=";", header=T)
 nrow(EBBA2_dt) # 579'263
@@ -167,173 +163,15 @@ EBBA1_sf_EPSG3035_ss <- EBBA1_sf_EPSG3035 %>%
 
 # convert EBBA 2 grid cells to point data (as EBBA1) and add EBBA 2 data:
 EBBA2_sf_points <- st_centroid(EBBA2_sf)
-length(unique(EBBA2_sf_points$cell50x50)) # 5303
+length(unique(EBBA2_sf_points$cell50x50)) # 5,303
 
 EBBA2_sf_pts_dt <- full_join(EBBA2_sf_points, EBBA2_dt, by = "cell50x50") %>% 
   rename(species = birdlife_scientific_name) %>% 
   select(-birdlife_code)
 
-nrow(EBBA2_sf_pts_dt) # 579487 (more because there are 224 cells for which no presence is recorded)
+nrow(EBBA2_sf_pts_dt) # 579,487 (more because there are 224 cells for which no presence is recorded)
 #st_write(EBBA2_sf_pts_dt, file.path(transfer, "input_data", "EBCC", "EBBA2", "EBBA2_EPSG3035_KS.shp"))
 #st_write(EBBA2_sf_pts_dt, "EBBA2_EPSG3035_KS.shp")
-
-# explorations regarding EBBA1 & convert_UTMcoord.R: ----------
-
-library(sp)
-library(rgdal)
-library(tibble)
-
-# originally, EBBA1 data were in UTM coordinates, script convert_UTMcoord.R contains examples how
-# to convert lon-lat to UTM coordinates, but was not extensively tested
-
-# Helper functions
-
-find_UTM_zone <- function(longitude, latitude) {
-  
-  # Special zones for Svalbard and Norway
-  if (latitude >= 72.0 && latitude < 84.0 ) 
-    if (longitude >= 0.0  && longitude <  9.0) 
-      return(31);
-  if (longitude >= 9.0  && longitude < 21.0)
-    return(33)
-  if (longitude >= 21.0 && longitude < 33.0)
-    return(35)
-  if (longitude >= 33.0 && longitude < 42.0) 
-    return(37)
-  
-  (floor((longitude + 180) / 6) %% 60) + 1 # UTM: 60 zones, each 6° of longitude width, zone 1 = 180°- 174°W
-}
-
-find_UTM_hemisphere <- function(latitude) {
-  
-  ifelse(latitude > 0, "north", "south")
-}
-
-# returns a DF containing the UTM values, the zone and the hemisphere
-longlat_to_UTM <- function(long, lat, units = 'm') {
-  
-  df <- data.frame(
-    id = seq_along(long), 
-    x = long, 
-    y = lat
-  )
-  sp::coordinates(df) <- c("x", "y")
-  
-  hemisphere <- find_UTM_hemisphere(lat)
-  zone <- find_UTM_zone(long, lat) # not vectorized
-  
-  sp::proj4string(df) <- sp::CRS("+init=epsg:4326") 
-  CRSstring <- paste0(
-    "+proj=utm +zone=", zone,
-    " +ellps=WGS84",
-    " +", hemisphere,
-    " +units=", units)
-  
-  if (dplyr::n_distinct(CRSstring) > 1L) 
-    stop("multiple zone/hemisphere detected")
-  
-  res <- sp::spTransform(df, sp::CRS(CRSstring[1L])) %>%
-    tibble::as_tibble() %>%
-    dplyr::mutate(
-      zone = zone,
-      hemisphere = hemisphere
-    )
-  
-  res
-}
-
-# conversion:
-EBBA1 <- EBBA1[!is.na(EBBA1$decimalLongitude),] # none
-
-EBBA1_coords <- longlat_to_UTM(EBBA1$decimalLongitude, EBBA1$decimalLatitude) # only returns zone 35 (but see: https://de.wikipedia.org/wiki/UTM-Koordinatensystem#/media/Datei:Utm-zones.jpg)
-# add UTM coordinates (WGS84, zone 35 north) to EBBA1:
-EBBA1 <- cbind(EBBA1, EBBA1_coords[,c("x", "y")])
-
-write.csv(EBBA1, file = file.path(transfer, "input_data", "EBCC", "EBBA1", "EBBA1_conv_coords_KS.csv"))
-
-EBBA1_coords %>% 
-  distinct(zone) %>% 
-  pull(zone) # all zone 35?
-
-EBBA1_coords %>% 
-  distinct(x, y) # 3912 unique raster locations
-
-EBBA1_coords_zone <- find_UTM_zone(EBBA1$decimalLongitude[1:2], EBBA1$decimalLatitude[1:2])
-# not vectorized?!
-
-find_UTM_zone2 <- function(longitude, latitude) {
-  
-  zones <- vector(mode = "numeric", length = length(longitude))
-  
-  for(i in 1:length(longitude)){
-    
-    # Special zones for Svalbard and Norway
-    if (latitude[i] >= 72.0 && latitude[i] < 84.0) 
-      if (longitude[i] >= 0.0  && longitude[i] <  9.0) 
-        zones[i] <- 31
-
-    if (longitude[i] >= 9.0  && longitude[i] < 21.0)
-      zones[i] <- 33
-
-    if (longitude[i] >= 21.0 && longitude[i] < 33.0)
-      zones[i] <- 35
-
-    if (longitude[i] >= 33.0 && longitude[i] < 42.0) 
-      zones[i] <- 37
-
-    zones[i] <- (floor((longitude[i] + 180) / 6) %% 60) + 1 # UTM: 60 zones, each 6° of longitude width, zone 1 = 180°- 174°W
-  }
-return(zones)
-}
-
-longlat_to_UTM2 <- function(long, lat, units = 'm') { # doesn't work, uses only first zone when transforming
-  
-  df <- data.frame(
-    id = seq_along(long), 
-    x = long, 
-    y = lat
-  )
-  sp::coordinates(df) <- c("x", "y")
-  
-  hemisphere <- find_UTM_hemisphere(lat)
-  zone <- find_UTM_zone2(long, lat)
-  
-  sp::proj4string(df) <- sp::CRS("+init=epsg:4326") 
-  CRSstring <- paste0(
-    "+proj=utm +zone=", zone,
-    " +ellps=WGS84",
-    " +", hemisphere,
-    " +units=", units)
-  
-  # if (dplyr::n_distinct(CRSstring) > 1L) 
-  #   stop("multiple zone/hemisphere detected")
-  
-  # loop hier:
-  #length(unique(CRSstring)) # 18 zones, use 18 transformations, one for each zone
-  
-  res <- sp::spTransform(df, sp::CRS(CRSstring)) %>%  # not vectorized
-    tibble::as_tibble() %>%
-    dplyr::mutate(
-      zone = zone,
-      hemisphere = hemisphere
-    )
-  
-  res
-}
-
-EBBA1_coords2 <- longlat_to_UTM2(EBBA1$decimalLongitude, EBBA1$decimalLatitude)
-
-EBBA1_with_coords2 <- cbind(EBBA1[,c("occurrenceID", "species", "taxonRank", 
-                                     "scientificName", "decimalLatitude", "decimalLongitude", "issue")], 
-                            EBBA1_coords2[,c("x", "y")])
-write.csv(EBBA1_with_coords2, file = file.path(transfer, "input_data", "EBCC", "EBBA1", "EBBA1_conv_coords_KS2.csv"))
-
-# mehrere UTM Zonen verwendet, in QGIS kann man nur eine auswählen?
-# spTransform benutzt nur ersten Wert 
-# alle Koordinaten werden zu erster Zone im df transformiert, 
-# Koordinaten beziehen sich auf den entsprechenden Mittelmeridian
-# nehmen daher eigentlich unzulässige (?) UTM-Werte an (außerhalb von 100'000 bis 899'999 (wikipedia), aber QGIS kommt damit klar)
-# kann CRS einer einzige Shapefile überhaupt mehrere UTM-Zonen beinhalten?
 
 
 # drop non-comparable cells according to EBBA2 methods chapter: ----
@@ -358,15 +196,15 @@ EBBA2_sf_pts_dt_country_code <- left_join(EBBA2_sf_pts_dt,
 # countries / areas to exclude because of low sampling effort:
 low_survey_effort <- c("CY", "TR", "RU", "KZ", "GE", "AM", "AZ", "IR") # IR = Iran, some observations are located just across the border
 
-# cell-IDs Canary Islands: 
+# exclude cell-IDs Canary Islands: 
 Canaries <- c("28RDU2", "27RYL3", "27RYM3", "28RBR1", "28RCS2", "28RCR1", "28RBS4", "28RBS1", 
               "28RDR3", "28RDR1", "28RCS4", "28RCS3", "28RES3", "28RES2", "28RDS4", "28RDS2", 
               "28RFT1", "28RFS2", "28RFS1", "28RES4", "28RFT4", "28RFT2")
 
-# cell-IDs Russia between PL and LT:
+# include cell-IDs Russia between PL and LT:
 Russia_Europe <- c("34UDG4", "34UDF1", "34UDF3", "34UEF1", "34UEF3", "34UEF4")
 
-# cell-IDs European Turkey: 
+# include cell-IDs European Turkey: 
 Turkey_Europe <- c("35TMG4", "35TNG2", "35TNG4", "35TMF3", "35TNF1", "35TNF3", "35TPF1", 
                    "35TPF3", "35TMF4", "35TNF2", "35TNF4", "35TPF2", "35TPF4", "35TME3")
 # (cellIDs that lie totally or mostly (>70% of their area) within the above mentioned areas xx?)
@@ -378,11 +216,11 @@ EBBA1_clipped_sf <- EBBA1_sf_EPSG3035_cellID %>%
                              cell50x50 %in% Russia_Europe ~ TRUE,
                              countryCode %in% low_survey_effort ~ FALSE,
                              TRUE ~ TRUE)) %>%
-  filter(include == TRUE) %>% 
+  filter(include == TRUE & !is.na(cell50x50)) %>% # also exclude observations from EBBA1 that are not inside an EBBA2 cell (151 observations, all along the coast)
   select(-include)
 
 nrow(EBBA1_sf_EPSG3035_cellID) # 355'488
-nrow(EBBA1_clipped_sf) # 330'486
+nrow(EBBA1_clipped_sf) # 330'337
 #st_write(EBBA1_clipped_sf, "EBBA1_clipped_KS.shp")
 
 # clip EBBA2 data to cells to keep:
@@ -391,7 +229,7 @@ EBBA2_clipped_sf <- EBBA2_sf_pts_dt_country_code %>%
                              cell50x50 %in% Turkey_Europe ~ TRUE,
                              cell50x50 %in% Russia_Europe ~ TRUE,
                              countryCode %in% low_survey_effort ~ FALSE,
-                             is.na(countryCode) ~ FALSE, # cell not included in EBBA1 -> drop
+                             is.na(countryCode) ~ FALSE, # cell not included in EBBA1 -> drop #xx
                              TRUE ~ TRUE)) %>% 
   filter(include == TRUE) %>% 
   select(-include)
@@ -399,7 +237,6 @@ EBBA2_clipped_sf <- EBBA2_sf_pts_dt_country_code %>%
 nrow(EBBA2_sf_pts_dt_country_code) # 579'487
 nrow(EBBA2_clipped_sf) # 365'389
 #st_write(EBBA2_clipped_sf, "EBBA2_clipped_KS.shp")
-
 
 
 # unify taxonomy between EBBAs: ----
@@ -413,260 +250,525 @@ EBBA2_clipped <- EBBA2_clipped_sf %>%
   st_drop_geometry() %>%
   select(cell50x50, species)
 
-# hier weiter: xx
-# based on EBBA methods chapter - removing all species from Table 6 unless necessary taxon changes clear!
-EBBA1[which(EBBA1$species=="Acanthis hornemanni"),'species'] <- "Acanthis flammea"
+# based on EBBA2 methods chapter:
+# "EBBA1 data were attributed, where possible, to the species recognised in EBBA2 (Table 6)"
 
-EBBA1[which(EBBA1$species=="Oceanodroma castro"),'species'] <- "Hydrobates castro"
+EBBA1_taxunif <- EBBA1_clipped
+EBBA2_taxunif <- EBBA2_clipped
 
-EBBA1[which(EBBA1$species=="Parus lugubris"),'species'] <- "Poecile lugubris"
+# account for name change from EBBA1 to EBBA2:
+EBBA1_taxunif[which(EBBA1_taxunif$species=="Acanthis hornemanni"),'species'] <- "Acanthis flammea"
+EBBA1_taxunif[which(EBBA1_taxunif$species=="Oceanodroma castro"),'species'] <- "Hydrobates castro"
+EBBA1_taxunif[which(EBBA1_taxunif$species=="Parus lugubris"),'species'] <- "Poecile lugubris"
+EBBA1_taxunif[which(EBBA1_taxunif$species=="Regulus ignicapillus"),'species'] <- "Regulus ignicapilla"
+EBBA1_taxunif[which(EBBA1_taxunif$species=="Serinus citrinella"),'species'] <- "Carduelis citrinella"
 
-EBBA1[which(EBBA1$species=="Regulus ignicapillus"),'species'] <- "Regulus ignicapilla"
+# remove all non-comparable species according to Table 6 in EBBA2 methods chapter:
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Branta hutchinsii"),]
 
-EBBA1[which(EBBA1$species=="Serinus citrinella"),'species'] <- "Carduelis citrinella"
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Calonectris diomedea"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Calonectris borealis"),]
+EBBA1_taxunif <- EBBA1_taxunif[which(EBBA1_taxunif$species!="Calonectris borealis"),]
 
-# remove non-comparable species:
-EBBA2 <- EBBA2[which(EBBA2$species!="Branta hutchinsii"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Hydrobates monteiroi"),]
 
-EBBA2 <- EBBA2[which(EBBA2$species!="Calonectris diomedea"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Calonectris borealis"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Larus cachinnas"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Larus michahellis"),]
+EBBA1_taxunif <- EBBA1_taxunif[which(EBBA1_taxunif$species!="Larus michahellis"),]
 
-EBBA1 <- EBBA1[which(EBBA1$species!="Calonectris borealis"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Picus viridis"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Picus sharpei"),]
+EBBA1_taxunif <- EBBA1_taxunif[which(EBBA1_taxunif$species!="Picus viridis"),]
 
-EBBA2 <- EBBA2[which(EBBA2$species!="Hydrobates monteiroi"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Lanius excubitor"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Lanius meridionalis"),]
+EBBA1_taxunif <- EBBA1_taxunif[which(EBBA1_taxunif$species!="Lanius excubitor"),]
 
-EBBA2 <- EBBA2[which(EBBA2$species!="Larus cachinnas"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Larus michahellis"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Poecile hyrcanus"),]
 
-EBBA1 <- EBBA1[which(EBBA1$species!="Larus michahellis"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Oenanthe xanthoprymna"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Oenanthe chrysopygia"),]
+EBBA1_taxunif <- EBBA1_taxunif[which(EBBA1_taxunif$species!="Oenanthe xanthoprymna"),]
 
-EBBA2 <- EBBA2[which(EBBA2$species!="Picus viridis"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Picus sharpei"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Phylloscopus collybita"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Phylloscopus tristis"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Phylloscopus ibericus"),]
+EBBA1_taxunif <- EBBA1_taxunif[which(EBBA1_taxunif$species!="Phylloscopus collybita"),]
 
-EBBA1 <- EBBA1[which(EBBA1$species!="Picus viridis"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Phylloscopus nitidus"),]
 
-EBBA2 <- EBBA2[which(EBBA2$species!="Lanius excubitor"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Lanius meridionalis"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Sylvia sarda"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Sylvia balearica"),]
+EBBA1_taxunif <- EBBA1_taxunif[which(EBBA1_taxunif$species!="Sylvia sarda"),]
 
-EBBA1 <- EBBA1[which(EBBA1$species!="Lanius excubitor"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Sylvia cantillans"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Sylvia subalpina"),]
+EBBA1_taxunif <- EBBA1_taxunif[which(EBBA1_taxunif$species!="Sylvia cantillans"),]
 
-EBBA2 <- EBBA2[which(EBBA2$species!="Poecile hyrcanus"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Regulus  madeirensis"),]
 
-EBBA2 <- EBBA2[which(EBBA2$species!="Oenanthe xanthoprymna"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Oenanthe chrysopygia"),]
+EBBA2_taxunif <- EBBA2_taxunif[which(EBBA2_taxunif$species!="Carduelis corsicana"),]
 
-EBBA1 <- EBBA1[which(EBBA1$species!="Oenanthe xanthoprymna"),]
-
-EBBA2 <- EBBA2[which(EBBA2$species!="Oenanthe xanthoprymna"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Oenanthe chrysopygia"),]
-
-EBBA1 <- EBBA1[which(EBBA1$species!="Oenanthe xanthoprymna"),]
-
-EBBA2 <- EBBA2[which(EBBA2$species!="Phylloscopus collybita"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Phylloscopus tristis"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Phylloscopus ibericus"),]
-
-EBBA1 <- EBBA1[which(EBBA1$species!="Phylloscopus collybita"),]
-
-EBBA2 <- EBBA2[which(EBBA2$species!="Phylloscopus bonelli"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Phylloscopus orientalis"),]
-
-EBBA1 <- EBBA1[which(EBBA1$species!="Phylloscopus bonelli"),]
-
-EBBA2 <- EBBA2[which(EBBA2$species!="Phylloscopus nitidus"),]
-
-EBBA2 <- EBBA2[which(EBBA2$species!="Sylvia hortensis"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Sylvia crassirostris"),]
-
-EBBA1 <- EBBA1[which(EBBA1$species!="Sylvia hortensis"),]
-
-EBBA2 <- EBBA2[which(EBBA2$species!="Sylvia sarda"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Sylvia balearica"),]
-
-EBBA1 <- EBBA1[which(EBBA1$species!="Sylvia sarda"),]
-
-EBBA2 <- EBBA2[which(EBBA2$species!="Sylvia cantillans"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Sylvia subalpina"),]
-
-EBBA1 <- EBBA1[which(EBBA1$species!="Sylvia cantillans"),]
-
-EBBA2 <- EBBA2[which(EBBA2$species!="Iduna pallida"),]
-EBBA2 <- EBBA2[which(EBBA2$species!="Iduna opaca"),]
-
-EBBA1 <- EBBA1[which(EBBA1$species!="Hippolais pallida"),]
-
-EBBA2 <- EBBA2[which(EBBA2$species!="Regulus  madeirensis"),]
-
-EBBA2 <- EBBA2[which(EBBA2$species!="Carduelis corsicana"),]
+length(unique(EBBA1_taxunif$species)) # 445 species left
+length(unique(EBBA2_taxunif$species)) # 517 species left
 
 
-# Species filtering:
+# Species filtering: ----
 
-## 1. exclude pelagic specialists (according to Wilman et al. 2014):
+EBBA1_filtered <- EBBA1_taxunif
+EBBA2_filtered <- EBBA2_taxunif
+
+## 1. exclude pelagic specialists (according to Wilman et al. 2014): ----
 
 SeaBirds <- read.csv2(file.path(transfer, "input_data", "BirdFuncDat.txt"), header=TRUE, sep="\t") #BirdFuncDat from the EltonTraits database: https://figshare.com/articles/dataset/Data_Paper_Data_Paper/3559887?backTo=/collections/EltonTraits_1_0_Species-level_foraging_attributes_of_the_world_s_birds_and_mammals/3306933
 SeaBirds <- subset(SeaBirds, PelagicSpecialist==1)
 SeaBirds <- SeaBirds$Scientific
 
-EBBA1 <- EBBA1[which(!EBBA1$species %in% SeaBirds),]
-EBBA2 <- EBBA2[which(!EBBA2$species %in% SeaBirds),]
+EBBA1_filtered <- EBBA1_filtered[which(!EBBA1_filtered$species %in% SeaBirds),]
+EBBA2_filtered <- EBBA2_filtered[which(!EBBA2_filtered$species %in% SeaBirds),]
+
+length(unique(EBBA1_filtered$species)) # 417 species left
+length(unique(EBBA2_filtered$species)) # 491 species left
 
 
-## 2. exclude rare species with n<20 occurrences in any of the two atlas periods:
-EBBA1_1 <- EBBA1 %>% 
+## 2. exclude rare species with n<20 occurrences in any of the two atlas periods: ----
+
+EBBA1_filtered <- EBBA1_filtered %>% 
   group_by(species) %>% 
   mutate(n_occurrences = n()) %>%
-  filter(n_occurrences >= 20)
+  filter(n_occurrences >= 20) %>% 
+  ungroup
 
-EBBA2_1 <- EBBA2 %>% 
+length(unique(EBBA1_filtered$species)) # 371 species left
+
+EBBA2_filtered <- EBBA2_filtered %>% 
   group_by(species) %>% 
   mutate(n_occurrences = n()) %>%
-  filter(n_occurrences >= 20)
+  filter(n_occurrences >= 20) %>% 
+  ungroup
+
+length(unique(EBBA2_filtered$species)) # 390 species left
 
 
-## 3. keep only those species that occur in both atlas periods:
-EBBA1_2 <- EBBA1_1 %>% 
-  filter(species %in% EBBA2_1$species)
-
-EBBA2_2 <- EBBA2_1 %>% 
-  filter(species %in% EBBA1_1$species)
-
-
-## 4. exclude very common species with >90% prevalence in both atlas periods:
+## 3. exclude very common species with >90% prevalence in both atlas periods: ----
 # = occur in >90% EBBA cells:
 
-# number of EBBA cells:
-EBBA2_Grid <- read_sf(file.path(transfer, "input_data", "EBCC", "EBBA2", "ebba2_grid50x50_v1", "ebba2_grid50x50_v1.shp"))
-# each cell = one row
-KeepCountries <- read_sf(file.path(transfer, "Comparable_region_mask.shp"))
-RetainedEBBA_Grid <- terra::intersect(EBBA2_Grid,KeepCountries)
-EBBAcells <- nrow(RetainedEBBA_Grid)
+nEBBAcells <- length(unique(EBBA1_clipped$cell50x50)) # 2845 (EBBA2 methods chapter: "change map thus encompassed a total of 2,972 50-km squares" -> more because I excluded cells from EBBA2 not in EBBA1, the 2,972 squares contain cells not included in change analysis due to insufficient coverage?!
+length(unique(EBBA2_clipped$cell50x50)) # 2845
+
+# which species are excluded:
+EBBA1_filtered %>% 
+  filter(n_occurrences > 0.9 * nEBBAcells) %>% 
+  distinct(species)
+EBBA2_filtered %>% 
+  filter(n_occurrences > 0.9 * nEBBAcells) %>% 
+  distinct(species)
+
+# exclude species:
+EBBA1_filtered <- EBBA1_filtered %>% 
+  filter(n_occurrences <= 0.9 * nEBBAcells)
+
+length(unique(EBBA1_filtered$species)) # 365 species left
+
+EBBA2_filtered <- EBBA2_filtered %>% 
+  filter(n_occurrences <= 0.9 * nEBBAcells)
+
+length(unique(EBBA2_filtered$species)) # 379 species left
 
 
-##Exporting species distributions for examination and identification of remaining issues##
-for(i in unique(EBBA1$species)){
+## 4. keep only those species that occur in both atlas periods: ----
+
+EBBA1_filtered <- EBBA1_filtered %>% 
+  filter(species %in% EBBA2_filtered$species)
+
+length(unique(EBBA1_filtered$species)) # 325 species left
+
+EBBA2_filtered <- EBBA2_filtered %>% 
+  filter(species %in% EBBA1_filtered$species)
+
+length(unique(EBBA2_filtered$species)) # 325 species left
+
+## how often does each species occur in each of the EBBAs:
+# EBBA1_filtered %>%
+#   arrange(-n_occurrences) %>% 
+#   distinct(species, n_occurrences)
+# 
+# EBBA2_filtered %>%
+#   arrange(-n_occurrences) %>%
+#   distinct(species, n_occurrences)
+
+
+## 5. exclude species that have <70% of climatic niche covered in Europe: ----
+species_filtered <- sort(sub(" ", "_", unique(EBBA2_filtered$species)))
+
+# EBBA2_filtered %>%
+#   select(species, n_occurrences) %>%
+#   distinct %>%
+#   arrange(n_occurrences) %>%  View
+
+library(archive) 
+
+datashare_Birdlife <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data", "biodat", "distribution", "Birdlife")
+#Birdlife_files <- archive(file.path(datashare_Birdlife, "All_Shapefiles.7z"))
+Birdlife_files <- archive(file.path("Data", "Birdlife_shapes", "All_Shapefiles.7z"))
+
+Birdlife_rel_files <- lapply(X = species_filtered, 
+                             FUN = function(x) Birdlife_files$path[which(grepl(pattern = paste0(x, "_"), x = Birdlife_files$path))])
+# shapefiles with 4 sub-files per species
+
+# some species have other names in IUCN / birdlife data than in EBBA data:
+spec_synonyms_df <- data.frame("EBBA_name" = species_filtered[which(lengths(Birdlife_rel_files) == 0)],
+                               "IUCN_name" = c("Carduelis_flammea", "Hirundo_daurica",
+                                               "Parus_caeruleus", "Miliaria_calandra", "Hippolais_pallida", 
+                                               "Carduelis_cannabina","Carduelis_flavirostris",
+                                               "Parus_cristatus", NA, "Parus_ater",
+                                               "Parus_cinctus", "Parus_lugubris",
+                                               "Parus_montanus", "Parus_palustris",
+                                               "Hirundo_rupestris", "Carduelis_spinus",
+                                               NA))
+# "Passer_italiae" and "Sylvia_ruppeli" not included in IUCN-polygons
+# but "Sylvia_rueppeli" is! xx
+
+# add files of species with synonym name:
+Birdlife_rel_files[which(lengths(Birdlife_rel_files) == 0)] <- lapply(X = spec_synonyms_df$IUCN_name, 
+       FUN = function(x) Birdlife_files$path[which(grepl(pattern = x, x = Birdlife_files$path))])
+
+Birdlife_rel_files <- unlist(Birdlife_rel_files)
+
+# extract files from zip:
+archive_extract(#archive = file.path(datashare_Birdlife, "All_Shapefiles.7z"),
+                archive = file.path("Data", "Birdlife_shapes", "All_Shapefiles.7z"),
+                dir = file.path("Data", "Birdlife_shapes"),
+                #dir = file.path(transfer, "IUCN_range_polys"),
+                files = Birdlife_rel_files)
+
   
-  #Isolate single species#
-  Sp_EBBA2 <- subset(EBBA2,EBBA2$brdlf__==i)
-  Sp_EBBA1 <- subset(EBBA1,EBBA1$species==i)
+# exploration: compare EBBA1 with range maps from BirdLife:
+
+library("rnaturalearth")
+library("rnaturalearthdata")
+library(ggplot2)
+
+# Accipiter brevipes:
+# BirdLife range map:
+BL_range_sf <- read_sf(file.path("Data", "Birdlife_shapes", Birdlife_rel_files[7])) %>% 
+  st_transform(crs = 3035)
+# EBBA distribution:
+EBBA1_range_sf <- EBBA1_filtered %>% 
+  filter(species == sub("_", " ", species_filtered[2])) %>% 
+  left_join(EBBA2_sf, by = c("cell50x50" = "cell50x50")) %>% 
+  st_as_sf()
+
+world <- ne_countries(scale = "small", returnclass = "sf")
+
+ggplot(world) +
+  geom_sf(color = "gray50") +
+  geom_sf(data = st_transform(BL_range_sf, crs = st_crs(world)), fill = "red", alpha = 0.5) +
+  geom_sf(data = st_transform(EBBA1_range_sf, crs = st_crs(world)), fill = "blue", colour = NA)
+
+
+# CHELSA climate data and bioclim variables
+# CHELSA climate data of which years?
+
+# create a mask based in Birdlife range polygon (resolution = 50 km, as EBBAs):
+# should have the same resolution, projection and extent as final grids
+
+library(gdalUtilities)
+library(terra)
+
+# for each species: convert range shapefile (WGS84) to raster, project raster to Homolosine projection and change resolution to 50 km:
+
+# input shapefiles:
+Birdlife_rel_files_shp <- list.files(file.path("Data", "Birdlife_shapes", "All_shapefiles"),
+                                     full.names = FALSE, pattern = ".shp")
+# output tifs:
+Birdlife_tifs <- sub(".shp", ".tif", Birdlife_rel_files_shp)
+
+# global equal area projection used by SoilGrids: (Homolosine projection applied to the WGS84 datum)
+homolosine <- 'PROJCS["Homolosine", 
+                     GEOGCS["WGS 84", 
+                            DATUM["WGS_1984", 
+                                  SPHEROID["WGS 84",6378137,298.257223563, 
+                                           AUTHORITY["EPSG","7030"]], 
+                                  AUTHORITY["EPSG","6326"]], 
+                            PRIMEM["Greenwich",0, 
+                                   AUTHORITY["EPSG","8901"]], 
+                            UNIT["degree",0.0174532925199433, 
+                                 AUTHORITY["EPSG","9122"]], 
+                            AUTHORITY["EPSG","4326"]], 
+                     PROJECTION["Interrupted_Goode_Homolosine"], 
+                     UNIT["Meter",1]]'
+
+# max_extent determined beforehand by running the following for-loop without the extent argument in gdalwarp and then doing the following:
+# extents <- data.frame(xmin = rep(NA, length(Birdlife_tifs)) , xmax = NA, ymin = NA, ymax = NA)
+# for(i in 1:length(Birdlife_tifs)){
+#   extents[i,] <- rast(file.path("Data", "Birdlife_shapes", "Raster", sub(".tif", "_50km.tif", Birdlife_tifs[i]))) %>% 
+#     ext %>% 
+#     as.vector
+#  }
+# # max. extent:
+# max_ext <- ext(c(min(extents$xmin), max(extents$xmax), min(extents$ymin), max(extents$ymax)))
+
+max_ext <- ext(c(-20037494.5740025, 20062597.2860579, -8513160.57528076, 8416378.24250695))
+
+for(i in 1:length(Birdlife_rel_files_shp)){# 325
   
-  #Plot species distributions from EBBA1 and 2, exporting so I can go through and identify species with unrealistic distributions and/or seabirds with coastal distributions that are not suited to these analyses#
-  tiff(filename = paste("./Data/EBBA_distribution_maps/",i,"_EBBA_map.tiff",sep=""),width=1000,height=1000,res=125)
+  print(paste(i, Birdlife_rel_files_shp[i]))
   
-  plot(Sp_EBBA1,col=alpha('red',1),pch=1,cex=0.75,main=paste(i,"red=EBBA1", "blue=EBBA2",sep=" "),xlim=c(xmin(EBBA1), xmax(EBBA1)), ylim=c(ymin(EBBA1), ymax(EBBA1)))
+  # creates a raster from the shapefile:
+  gdalUtilities::gdal_rasterize(src_datasource = file.path("Data", "Birdlife_shapes", "All_shapefiles", Birdlife_rel_files_shp[i]),
+                                where = "SEASONAL = '1' OR SEASONAL = '2'", # SEASONAL = 1: resident throughout the year, SEASONAL = 2: breeding season
+                                dst_filename = file.path("Data", "Birdlife_shapes", "Raster", Birdlife_tifs[i]),
+                                burn = 1,
+                                tr = c(0.1, 0.1), # target resolution in degrees (same unit as src_datasource) (0.1° enough since final resolution will be 50 km)
+                                a_nodata = -99999) # value for cells with missing data
   
-  plot(Sp_EBBA2,col=alpha('blue',1),pch=16,cex=0.5,add=T)
-  
-  plot(KeepCountries,add=T)
-  
-  dev.off()
+  # project with Homolosine projection and change resolution to 50 km (as EBBA):
+  gdalUtilities::gdalwarp(srcfile = file.path("Data", "Birdlife_shapes", "Raster", Birdlife_tifs[i]), 
+                          dstfile = file.path("Data", "Birdlife_shapes", "Raster", sub(".tif", "_50km.tif", Birdlife_tifs[i])), # same name to overwrite? xx
+                          overwrite = TRUE,
+                          tr = c(50000, 50000), # target resolution in meters (same as unit of target srs)
+                          r = "max", # "near", resampling method
+                          t_srs = homolosine,# "EPSG:3035" # target spatial reference
+                          te = c(max_ext[1], max_ext[3], max_ext[2], max_ext[4]) # test!
+  )
+} 
+# -> specifying extent in gdalwarp later allows to combine all rasters!
+# 26 warnings when using Homolosine projection
+# (36 warnings when using EPSG:3035, results look strange)
+
+ranges_proj_files <- list.files(file.path("Data", "Birdlife_shapes", "Raster"),
+                                pattern = "50km.tif",
+                                full.names = TRUE)
+ranges_proj <- rast(ranges_proj_files)
+
+# check ranges:
+for(s in 1:10){
+  print(s)
+  print(Birdlife_rel_files_shp[s])
+  plot(ranges_proj[[s]])
+  readline(prompt = "Press [enter] to continue") # to go to next species; press [esc] to stop the loop
 }
 
+ranges_combined <- max(ranges_proj, na.rm = TRUE) # used as mask when projecting Chelsa data to save computation time!
+# buffer combined ranges to fill small holes (otherwise few EBBA grid points are not covered):
+ranges_combined_bf <- buffer(ranges_combined, width = 100000)
+# save mask:
+writeRaster(ranges_combined_bf, filename = file.path("Data", "Birdlife_ranges_mask.tif"),
+            overwrite = TRUE,
+            NAflag = FALSE) # cells outside the buffer are FALSE, should be used as NA
 
-##Filtering out the most common birds##
+ext_ranges_combined <- ext(ranges_combined_bf)
 
-EBBA2_common<-as.data.frame(table(EBBA2$brdlf__))
+# use mask to crop and reproject Chelsa data:
 
-EBBA2_common<-as.character(subset(EBBA2_common,EBBA2_common$Freq>(0.9*EBBAcells))$Var1)#common if occur in >90% EBBA cells, removes 20 species
+# folder to which raw CHELSA were downloaded:
+#chelsa_tifs <- list.files(file.path(transfer, "CHELSA_global_climate_dat_1980-1990+1999-2019"),
+#                          full.names = FALSE, pattern = ".tif")
+## for first trial restrict chelsa files one year in recent time: xx
+# 2018 (2019 not complete?)
+chelsa_tifs <- list.files(file.path(transfer, "CHELSA_global_climate_dat_1980-1990+1999-2019"),
+                          full.names = FALSE, pattern = "2018_V.2.1.tif")
 
-EBBA2<- as.data.frame(EBBA2) %>% group_by(brdlf__) %>% filter(n()<(0.9*EBBAcells)) %>% ungroup()#Use EBBA2 to filter as less confident presences in EBBA1 are accurate
 
-Sp_List<-unique(EBBA2$brdlf__) #Now 326 species
+# folder to store reprojected CHELSA data:
+chelsa_birdlife_path <- file.path("Data", "Chelsa_Birdlife_ranges_50km")
+# create folder if it doesn't exist yet:
+if(!dir.exists(chelsa_birdlife_path)){
+  dir.create(chelsa_birdlife_path, recursive = TRUE)
+}
 
-##IUCN range overlap analysis##
-##Filter Out species with <5% range in EBBA comparable cells. Range from IUCN Red List global polygons##
+# create list of file paths for the reprojected data:
+names <- paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "tif")})), "50km.tif")
+names <- file.path(chelsa_birdlife_path, names)
 
-Sp_List <- sub(" ", "_", Sp_List)#replace space with underscore to match IUCN file names
-
-#List IUCN species polygons# 
-
-#!!Make sure polygons are unzipped in folder before attempting!!#
-
-target_path <- file.path(".Data//IUCN_range_polys/All_shapefiles")
-
-IUCN_species <- list.files(target_path, full.names = F, pattern = ".shp")
-
-IUCN_species <- substr(IUCN_species,1,nchar(IUCN_species)-13)
-
-#Match IUCN names to EBBA species and identify unmatched EBBA species to harmonize#
-
-Matched_sp<-IUCN_species[which(IUCN_species %in% Sp_List)]
-
-unmatched_sp<-Sp_List[which(!Sp_List %in% IUCN_species)]##Examine these names and find suitable replacement for harmonization
-
-#Harmonization notes (changed IUCN file names to match those used in EBBA)
-# - Carduelis_chloris -> Chloris_chloris
-# - Carduelis_flammea -> Acanthis_flammea
-# - Carduelis_spinus -> Spinus_spinus
-# - Carduelis_cannabina -> Linaria_cannabina
-# - Milaria_calandra -> Emberiza_calandra
-# - Parus_ater -> Periparus_ater
-# - Hirundo_rupestris -> Ptyonoprogne_rupestris
-# - Hirundo_daurica -> Cecropis_daurica
-# - Parus_caeruleus -> Cyanistes_caeruleus
-# - Parus_cristatus -> Lophophanes_cristatus
-# - parus_palustris -> Poecile_palustris
-# - Carduelis_flavirostris -> Linaria_flavirostris
-# - Parus_montanus -> Poecile_montanus
-# - Parus_lugubris -> Poecile_lugubris
-# - Parus_cinctus -> Poecile_cinctus
-# - Sturnus_roseus -> Pastor_roseus
-# - Hippolais_caligata -> Iduna_caligata
-#!! Passer_italiae not mapped by IUCN!! But is European, so should be retained in species list#
-
-#List IUCN files with full names#
-
-IUCN_polys <- list.files(target_path, full.names = T, pattern = ".shp")
-
-#Restrict IUCN polygons to just species included in the species list
-
-IUCN_polys <- IUCN_polys[grep(paste(Sp_List, collapse="|"),IUCN_polys)]
-
-##Read in EBBA polygons and restrict to retained region
-EBBA2_poly <- readOGR("./Data/input_data/EBCC/EBBA2/ebba2_grid50x50_v1/ebba2_grid50x50_v1.shp") %>%
-  spTransform(CRS('+proj=laea +lat_0=10 +lon_0=-81 +ellps=WGS84 +units=m +no_defs')) %>%
-  gBuffer(byid=TRUE, width=0)
-
-KeepCountries <- readOGR(".Data/","Comparable_region_mask") %>%
-  spTransform(CRS('+proj=laea +lat_0=10 +lon_0=-81 +ellps=WGS84 +units=m +no_defs')) %>%
-  gBuffer(byid=TRUE, width=0)#Put into global CRS and buffer to avoid gIntersect error
-
-EBBA2_poly <- gIntersection(EBBA2_poly,KeepCountries) %>%
-  gBuffer(byid=TRUE, width=0)
-
-EBBA_range_cover<-list()
-
-for(i in IUCN_polys[1:306]){
+# loop through downloaded CHELSA layers and reproject and mask them
+for(i in 1:length(chelsa_tifs)){
   
-  glob_range<-readOGR(i) %>% 
-    spTransform(CRS('+proj=laea +lat_0=10 +lon_0=-81 +ellps=WGS84 +units=m +no_defs')) %>%
-    
-    gBuffer(byid=TRUE, width=0)
+  print(paste(i, "of", length(chelsa_tifs)))
   
-  EBBA_range<-gIntersection(glob_range,EBBA2_poly)
+  # reproject Chelsa data:
+  gdalUtilities::gdalwarp(srcfile = file.path(transfer, "CHELSA_global_climate_dat_1980-1990+1999-2019", 
+                                              chelsa_tifs[i]),
+                          dstfile = names[i],
+                          overwrite = TRUE,
+                          tr = c(50000, 50000),#res(mask_res),
+                          r = "bilinear", # resampling method
+                          s_srs = "EPSG:4326",
+                          t_srs = homolosine, #"EPSG:3035",
+                          te = c(ext_ranges_combined[1], ext_ranges_combined[3], ext_ranges_combined[2], ext_ranges_combined[4])
+  ) 
   
-  if (is.null(EBBA_range)){
-    EBBA_range_cover[i]<-0
-  } else {
-    EBBA_range_cover[i]<-round(area(EBBA_range)/sum(area(glob_range))*100,2)
-  }}
+  # mask reprojected raster so all non-terrestrial areas become NA:
+  names[i] %>% 
+    rast %>% 
+    mask(mask = ranges_combined) %>% 
+    # overwrite reprojected raster with masked raster:
+    writeRaster(names[i], overwrite = TRUE)
+}
 
-#Coerce list into table with species names, then subset by %
+# again 26 warnings!
+# In CPL_gdalwarp(source, destination, options, oo, doo,  ... :
+# GDAL Error 1: Too many points (526 out of 529) failed to transform, unable to compute output bounds.
+# 2: In CPL_gdalwarp(source, destination, options, oo, doo,  ... :
+#    GDAL Message 1: Unable to compute source region for output window 588,0,13,10, skipping.
 
-RangeCoverdf <- melt(EBBA_range_cover)
-RangeCoverdf <- RangeCoverdf[,c(2,1)]
-names(RangeCoverdf) <- c("species","range_cover_percent")
-RangeCoverdf$species <- substr(RangeCoverdf$species,77,nchar(RangeCoverdf$species)-13)
+# use Chelsa layers to calculate bioclim variables:
 
-#Restrict to finalized species list
-write.csv(RangeCoverdf,"./Data/IUCN_poly_covered.csv")
+library(dismo) # requires spatial data formats of raster package -> no transition to terra possible
+library(raster)
+library(stringr)
 
-hist(RangeCoverdf$range_cover_percent, main="Range within EBBA Region", xlab="Percentage range covered")
+vars <- c("pr", "tas", "tasmin", "tasmax")
+months <- str_pad(1:12, width = 2, pad = "0")
 
-Sp_list <- subset(RangeCoverdf,range_cover_percent>5)$species #Likely threshold not defensible, method needs reconsidering
+# Chelsa data
+chelsa_proj_file <- list.files(file.path("Data", "Chelsa_Birdlife_ranges_50km"),
+                               pattern = "tif$",
+                               full.names = TRUE)
+years <- 2018 # 2009:2018
 
-write.csv(Sp_List,"./Data/Change_Data_request_species_list.csv")
+# load mask (use raster package since this is used to create a spatial brick which is required by dismo::biovars())
+mask_ranges_combined <- raster(file.path("Data", "Birdlife_ranges_mask.tif"))
 
-writeOGR(EBBA1,"./Data/input_data/EBCC/","Filtered_EBBA1",driver="ESRI Shapefile",overwrite=T)
+# create a spatial brick template from the mask and 
+# create bricks to store the month-wise means across the selected years for each bioclim variable
+out <- brick(mask_ranges_combined, values = FALSE)
+pr_mean <- tasmin_mean <- tasmax_mean <- out
 
-writeOGR(EBBA2,"./Data/input_data/EBCC/","Filtered_EBBA2",driver="ESRI Shapefile",overwrite=T)
+# loop over months:
+for(j in as.numeric(months)){
+  
+  print(paste("month", j))
+  
+  # calculate precipitation mean for the current month (across all available years)
+  pr_mean[[j]] <- chelsa_proj_file[which(grepl(paste0("pr_", months[j]),
+                                               chelsa_proj_file))] %>% 
+    stack %>% 
+    mean
+  
+  # calculate tasmin mean for the current month (across all available years)
+  tasmin_mean[[j]] <- chelsa_proj_file[which(grepl(paste0("tasmin_", months[j]), 
+                                                   chelsa_proj_file))] %>% 
+    stack %>% 
+    mean
+  
+  # calculate tasmax mean for the current month (across all available years)
+  tasmax_mean[[j]] <- chelsa_proj_file[which(grepl(paste0("tasmax_", months[j]), chelsa_proj_file))] %>% 
+    stack %>% 
+    mean
+}
+
+# calculate bioclim variables (be very patient!); use raster data as input to be later able to crop and mask data according to ranges of single species
+biovars <- dismo::biovars(prec = pr_mean,  
+                          tmin = tasmin_mean, 
+                          tmax = tasmax_mean)
+
+biovars_rast <- rast(biovars) # convert to terra object
+# save tifs for each bioclim variable:
+writeRaster(biovars_rast,
+            filename = file.path("Data", "Bioclim_raster", paste0("CHELSA_", names(biovars), "_", 
+                                                                  min(years), "_", max(years), "_", 
+                                                                  "50km.tif")), 
+                    overwrite = TRUE)
+
+
+# climatic niche analyses: exclude species that have <70% of climatic niche covered in Europe:
+# calculate stability index: how much of the species global climatic niche is covered in Europe
+
+library(ecospat)
+library(ade4)
+
+stability_df <- data.frame("species" = sub("_", " ", species_filtered),
+                           "stability" = NA)
+
+for(i in 5:10){#length(species_filtered)){
+  
+  print(i)
+  print(species_filtered[i])
+  
+  # EBBA1 occurrence point of species i:
+  
+  EBBA1_spec_sf <- EBBA1_clipped_sf %>% 
+    st_transform(crs = homolosine) %>% # transform to Homolosine projection to match bioclim variables
+    filter(species == sub("_", " ", species_filtered[i])) %>% 
+    vect # convert to terra object
+  
+  # add bioclim variables to occurrences:
+  EBBA1_spec_vars_df <- cbind(values(EBBA1_spec_sf[, c("species", "cell50x50")]),
+                              terra::extract(biovars_rast, EBBA1_spec_sf))
+  
+  # Birdlife range of species i:
+  
+  BL_file <- grep(pattern = species_filtered[i], ranges_proj_files, value = TRUE)
+  if(length(BL_file) == 0){ # Birdlife used another species name:
+    BL_file <- grep(pattern = spec_synonyms_df$IUCN_name[which(spec_synonyms_df$EBBA_name == species_filtered[i])], 
+                    ranges_proj_files, 
+                    value = TRUE)
+    }
+  
+  BL_pts_spec <- BL_file %>% 
+    rast %>% # load raster
+    as.points # convert raster to grid points
+  
+  # add bioclim variables to occurrences:
+  BL_spec_vars_df <- cbind(data.frame(species = sub("_", " ", species_filtered[i]),
+                                      cell50x50 = "BL"),
+                           terra::extract(biovars_rast, BL_pts_spec))
+  
+  # assess climate niche by using the first 2 PCA axes:
+  # calibrating the PCA in the whole study area, including both ranges:
+  pca.env <- dudi.pca(rbind(EBBA1_spec_vars_df, BL_spec_vars_df)[,4:22],
+                      scannf=FALSE,
+                      nf=2) # number of axes
+  
+  # predict the scores on the PCA axes:
+  # EBBA1 used as z1 (corresponds to native distribution in tutorials)
+  # Birdlife range used as z2 (corresponds to invasive distribution in tutorials)
+  scores.globclim <- pca.env$li # PCA scores for EBBA + Birdlife distribution
+  scores.clim.EBBA <- suprow(pca.env,EBBA1_spec_vars_df[,4:22])$li # PCA scores for EBBA ditribution
+  scores.clim.BL <- suprow(pca.env,BL_spec_vars_df[,4:22])$li # PCA scores for Birdlife distribution
+  
+  # calculate the Occurrence Densities Grid for EBBA and Birdlife ditribution:
+  
+  # EBBA1 distribution area:
+  grid.clim.EBBA <- ecospat.grid.clim.dyn(glob = scores.globclim,
+                                          glob1 = scores.clim.EBBA, 
+                                          sp = scores.clim.EBBA, # same for background an occurrences -> fine? xx
+                                          R = 100, # grid resolution
+                                          th.sp = 0) # threshold to exclude low species density values
+  # Birdlife range area:
+  grid.clim.BL <- ecospat.grid.clim.dyn(glob = scores.globclim,
+                                        glob1 = scores.clim.BL, 
+                                        sp = scores.clim.BL, # same for background an occurrences -> fine? xx
+                                        R = 100, 
+                                        th.sp = 0)
+  
+  # assess niche dynamics between EBBA1 (as z1) and Birdlife range map (as z2) 
+  # => the stability index shows how much of the species global climatic niche 
+  # is covered in Europe (should be e.g. >0.7):
+  
+  EBBA_BL_niche_dyn <- ecospat.niche.dyn.index(grid.clim.EBBA, 
+                                               grid.clim.BL,
+                                               intersection=NA) # analysis performed on EBBA + Birdlife extent
+  stability_df$stability[i] <- EBBA_BL_niche_dyn$dynamic.index.w['stability']
+  
+  print(paste("Stability =", round(stability_df$stability[i],2)))
+  
+  # save plot of niche dynamics:
+  jpeg(filename = file.path("plots", "EBBA_Birdlife_niche_dyn", paste0(species_filtered[i], ".jpg")),
+       quality = 100, height = 920, width = 920
+       )
+  ecospat.plot.niche.dyn(grid.clim.EBBA, 
+                         grid.clim.BL, 
+                         quant = 0.1,
+                         interest = 2, # 1 = EBBA density, 2 = BL density
+                         title = paste(species_filtered[i], "stability:", round(stability_df$stability[i],2)), 
+                         name.axis1 = "PC1",
+                         name.axis2 = "PC2")
+  dev.off()
+  # blue = stability
+  # red = expansion
+  # green = unfilling
+}
+# still need to test!
