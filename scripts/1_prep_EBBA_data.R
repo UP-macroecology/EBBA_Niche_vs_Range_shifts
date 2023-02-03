@@ -230,7 +230,7 @@ EBBA2_clipped_sf <- EBBA2_sf_country_code %>%
                              cell50x50 %in% Turkey_Europe ~ TRUE,
                              cell50x50 %in% Russia_Europe ~ TRUE,
                              countryCode %in% low_survey_effort ~ FALSE,
-                             is.na(countryCode) ~ FALSE, # cell not included in EBBA1 -> drop #xx
+                             is.na(countryCode) ~ FALSE, # drop cell not included in EBBA1
                              TRUE ~ TRUE)) %>% 
   filter(include == TRUE) %>% 
   select(cell50x50, species)
@@ -238,6 +238,9 @@ EBBA2_clipped_sf <- EBBA2_sf_country_code %>%
 nrow(EBBA2_sf_country_code) # 579'487
 nrow(EBBA2_clipped_sf) # 365'389
 
+# save:
+st_write(EBBA1_clipped_sf, file.path("Data", "EBBA1_comparable.shp")) # save also before taxonomic harmonization because otherwise 5 EBBA2 cells are dropped that don't contain any record of comparable species
+st_write(EBBA2_clipped_sf, file.path("Data", "EBBA2_comparable.shp"))
 
 # -------------------------------------------------- #
 #            Unify taxonomy between EBBAs:        ####

@@ -26,7 +26,7 @@ if(!dir.exists(chelsa_birdlife_path)){
   dir.create(chelsa_birdlife_path, recursive = TRUE)
 }
 
-# create list of file paths for the reprojected data:
+# create file paths for the reprojected data:
 names <- paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "\\.tif")})), "_50km.tif")
 names <- file.path(chelsa_birdlife_path, names)
 
