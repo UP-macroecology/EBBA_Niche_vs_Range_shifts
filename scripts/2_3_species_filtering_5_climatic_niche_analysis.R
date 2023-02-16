@@ -390,7 +390,7 @@ for(i in 1:length(species_filtered)){
   
   EBBA_BL_niche_dyn <- ecospat.niche.dyn.index(grid.clim.EBBA, 
                                                grid.clim.BL,
-                                               intersection=NA) # analysis performed on EBBA + Birdlife extent
+                                               intersection = NA) # analysis performed on EBBA + Birdlife extent
   stability_df$stability[i] <- EBBA_BL_niche_dyn$dynamic.index.w['stability']
   
   print(paste("Stability =", round(stability_df$stability[i],2)))
