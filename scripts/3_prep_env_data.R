@@ -1,7 +1,6 @@
 # Environmental data used for niche analysis:
 
 # notes:
-# - this script was run from the cluster, file paths may need to be updated
 # - before running the script run "module load R/4.1.0-foss-2021a" on ecoc9 to ensure that R version 4.1.0 (2021-05-18) and GDAL 3.3.0 are used
 
 library(gdalUtilities)
@@ -15,12 +14,13 @@ library(stringr)
 #       Climate data:           ####
 # -------------------------------- #
 
-# setup:
-
+# file paths:
 datashare_EBCC <- file.path("/mnt","ibb_share","zurell", "biodat", "distribution", "EBCC")
 datashare_Chelsa <- file.path("/mnt","ibb_share","zurell","envidat","biophysical","CHELSA_V2","global") 
 
-# 1) project Chelsa data of EBBA 2 area: ----
+
+# 1) project Chelsa data of EBBA 2 area: ---------------------------------------
+
 # Lambert azimuthal equal-area projection (ETRS89-extended / LAEA Europe, EPSG:3035)
 # historic (1981-1990) and recent time period (2009-2018)
 
@@ -40,31 +40,23 @@ names <- paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "\\.ti
 # CRS: Lambert azimuthal equal-area projection:
 lambert_projection <- "EPSG:3035"
 
+
 ## Create a mask: ----
 
-# mask should not only cover EBBA change map area but also maximum buffer around species occurrences used to determine environmental background
 # to create the mask, I use the EBBA 2 spatial grid and not only the cells that can be compared across EBBA 1 and EBBA 2
-# because in the later analysis we will create a buffer around species occurrences and the buffered area will be considered as the
-# environmental background that is in principle accessible to a species
-# this background should cover only the land area and not the ocean,
-# therefore buffering mainly occurs on the eastern side of the EBBA comparable area (see Fig. 9 in EBBA 2 methods chapter)
-# land area to the east is included in the EBBA 2 grid, so I will simply use this as a basis for creating a mask
-# with which then Chelsa data will be extracted,
-# this should work for buffers of up to roughly 710 km (distance between eastern most greek islands and western Syria)
-# what about northern Africa? count as accessible?
-
-# or: simply use only known absences from change maps?
+# to avoid holes resulting from non-comparable cells
 
 # rasterize shapefile:
 gdalUtilities::gdal_rasterize(src_datasource = file.path(datashare_EBCC, "EBBA2", "ebba2_grid50x50_v1", "ebba2_grid50x50_v1.shp"),
                               dst_filename = file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "EBBA2_area.tif"),
                               burn = 1,
                               at = TRUE, # ALL_TOUCHED rasterization: all pixels touched by polygons get value 1
-                              tr = c(50000, 50000), # target resolution in degrees (same unit as src_datasource)
+                              tr = c(50000, 50000), # target resolution (same unit as src_datasource)
                               a_nodata = -99999)
 
 EBBA_mask <- rast(file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "EBBA2_area.tif"))
 mask_ext <- ext(EBBA_mask)
+
 
 ## Project downloaded Chelsa layers: ----
 
@@ -73,8 +65,6 @@ registerDoParallel(cores = 8)
 getDoParWorkers() # check registered number of cores
 
 foreach(s = 1:length(chelsa_tifs), .packages = c("gdalUtilities") , .verbose = TRUE) %dopar% {
-  
-  options(warn = 1) # default warn = 0; 1 = warnings are printed as they occur
   
   # reproject Chelsa data:
   gdalUtilities::gdalwarp(srcfile = file.path(datashare_Chelsa, 
@@ -93,7 +83,7 @@ foreach(s = 1:length(chelsa_tifs), .packages = c("gdalUtilities") , .verbose = T
 } 
 
 
-# 2) Calculate bioclimatic variables: ----
+# 2) Calculate bioclimatic variables: ------------------------------------------
 
 # once for historic period (1981-1990), once for recent period (2009-2018)
 
@@ -112,6 +102,7 @@ if(!dir.exists(bioclim_1981_1990)){dir.create(bioclim_1981_1990, recursive = TRU
 bioclim_2009_2018 <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "Bioclim_2009_2018")
 # create folder if it doesn't exist yet:
 if(!dir.exists(bioclim_2009_2018)){dir.create(bioclim_2009_2018, recursive = TRUE)} 
+
 
 # loop over time periods:
 for(t in 1:2){
