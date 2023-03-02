@@ -196,8 +196,6 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
                                             "niche_expansion_A" = NA,
                                             "niche_unfilling_A" = NA,
                                             # niche characteristics:
-                                            "n_cells_hist" = NA, # niche size historic period (as number of cells) xx
-                                            "n_cells_rec" = NA, # niche size recent period (as number of cells) xx
                                             "niche_centroid_hist_X" = NA, # not sure whether this is useful xx
                                             "niche_centroid_hist_Y" = NA, # not sure whether this is useful xx
                                             "niche_centroid_rec_X" = NA, # not sure whether this is useful xx
@@ -471,8 +469,6 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
           
           ## niche characteristics: --------------------------------------------
           
-          # size of niche as numbers of cells: ? xx
-
           # niche centroids:
           
           # as median of species EBBA distribution scores along the first 2 PCA axes:

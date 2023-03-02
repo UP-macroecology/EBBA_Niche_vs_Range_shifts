@@ -17,7 +17,7 @@
 # - results of range shift tests
 # - results of range conservatism tests
 # - range dynamic metrics: range stability, expansion and unfilling between historic and recent time period
-# - standardised range dynamic metrics: stability, expansion, unfilling, abandonment, pioneering
+# - standardised range dynamic metrics: stability, expansion, unfilling
 # - plots of range dynamics
 
 library(sf)
@@ -92,8 +92,8 @@ range_shift_df <- data.frame("species" = sel_species,
                              "centroid_dist" = NA,
                              "centroid_NS_shift" = NA, # north-south shift
                              "centroid_EW_shift" = NA, # east-west shift
-                             "n_cells_hist" = NA, # xx informative?
-                             "n_cells_rec" = NA # xx informative?
+                             "n_cells_hist" = NA,
+                             "n_cells_rec" = NA
                              )
 
 # central range coordinate historic time of each species:
@@ -454,43 +454,15 @@ u_rel <- u * x / t
 s_rel <- s / t
 e_rel <- e / t
 
-# analogue area = area accessible in both time periods (EBBA1 and EBBA2):
-e_a <- range_ecospat_df$range_expansion_A # expansion related to accessible EBBA2 area
-s_a <- range_ecospat_df$range_stability_A # stability related to accessible EBBA2 area
-u_a <- range_ecospat_df$range_unfilling_A # unfilling related to accessible EBBA1 area
-
-# stability, analogue conditions, related to accessible EBBA1 area:
-s_y <- 1 - u_a
-
-# proportion stability related to analogue accessible EBBA2 area and stability related to whole EBBA2 accessible area (= proportion by which one accessible area is larger / smaller than the other)
-y <- s_a / s_y
-
-# total area (accessible in both EBBA 1 and EBBA2)
-t_a <- u_a * y + s_a + e_a 
-
-# unfilling, stability and expansion standardized so that they sum up to one, relative to total analogue space
-s_rel_a1 <- s_a / t_a
-e_rel_a1 <- e_a / t_a
-u_rel_a1 <- u_a * y / t_a
-
-# size of t_a in relation to t:
-i <- s_rel / s_rel_a1 # proportion non-analogue to analogue stability 
-
 # target values:
-range_ecospat_df$range_stability_std <- s_rel_a1 * i # stability
-range_ecospat_df$range_unfilling_std <- u_rel_a1 * i # unfilling
-range_ecospat_df$range_expansion_std <- e_rel_a1 * i # expansion
-range_ecospat_df$range_abandonment_std <- u_rel - range_ecospat_df$range_unfilling_std # abandonment
-range_ecospat_df$range_abandonment_std[range_ecospat_df$range_abandonment_std < 0] <- 0 # slightly negative values result from rounding errors of ecospat package
-range_ecospat_df$range_pioneering_std <- e_rel - range_ecospat_df$range_expansion_std # pioneering
-range_ecospat_df$range_pioneering_std[range_ecospat_df$range_pioneering_std < 0] <- 0 # slightly negative values result from rounding errors of ecospat package
+range_ecospat_df$range_stability_std <- s_rel # stability
+range_ecospat_df$range_unfilling_std <- u_rel # unfilling
+range_ecospat_df$range_expansion_std <- e_rel # expansion
 
 # check: values should sum to 1:
-total <- range_ecospat_df$range_abandonment_std + 
-  range_ecospat_df$range_unfilling_std + 
+total <-  range_ecospat_df$range_unfilling_std + 
   range_ecospat_df$range_stability_std + 
-  range_ecospat_df$range_expansion_std + 
-  range_ecospat_df$range_pioneering_std
+  range_ecospat_df$range_expansion_std
 
 # merge results:
 range_shift_all_df <- cbind(range_shift_df, range_ecospat_df[,-1])
