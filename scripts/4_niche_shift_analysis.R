@@ -529,20 +529,20 @@ u_rel_a1 <- u_a * y / t_a
 i <- s_rel / s_rel_a1 # proportion non-analogue to analogue stability 
 
 # target values:
-niche_shift_df$std_niche_stability <- s_rel_a1 * i # stability
-niche_shift_df$std_niche_unfilling <- u_rel_a1 * i # unfilling
-niche_shift_df$std_niche_expansion <- e_rel_a1 * i # expansion
-niche_shift_df$std_niche_abandonment <- u_rel - niche_shift_df$std_niche_unfilling # abandonment
-niche_shift_df$std_niche_abandonment[niche_shift_df$std_niche_abandonment < 0] <- 0 # slightly negative values result from rounding errors of ecospat package
-niche_shift_df$std_niche_pioneering <- e_rel - niche_shift_df$std_niche_expansion # pioneering
-niche_shift_df$std_niche_pioneering[niche_shift_df$std_niche_pioneering < 0] <- 0 # slightly negative values result from rounding errors of ecospat package
+niche_shift_df$niche_stability_std <- s_rel_a1 * i # stability
+niche_shift_df$niche_unfilling_std <- u_rel_a1 * i # unfilling
+niche_shift_df$niche_expansion_std <- e_rel_a1 * i # expansion
+niche_shift_df$niche_abandonment_std <- u_rel - niche_shift_df$niche_unfilling_std # abandonment
+niche_shift_df$niche_abandonment_std[niche_shift_df$niche_abandonment_std < 0] <- 0 # slightly negative values result from rounding errors of ecospat package
+niche_shift_df$niche_pioneering_std <- e_rel - niche_shift_df$niche_expansion_std # pioneering
+niche_shift_df$niche_pioneering_std[niche_shift_df$niche_pioneering_std < 0] <- 0 # slightly negative values result from rounding errors of ecospat package
 
 # check: values should sum to 1:
-total <- niche_shift_df$std_niche_abandonment + 
-  niche_shift_df$std_niche_unfilling + 
-  niche_shift_df$std_niche_stability + 
-  niche_shift_df$std_niche_expansion + 
-  niche_shift_df$std_niche_pioneering
+total <- niche_shift_df$niche_abandonment_std + 
+  niche_shift_df$niche_unfilling_std + 
+  niche_shift_df$niche_stability_std + 
+  niche_shift_df$niche_expansion_std + 
+  niche_shift_df$niche_pioneering_std
 
 # save resulting data frame:
 write.csv(niche_shift_df, file = results_file, row.names = FALSE)
