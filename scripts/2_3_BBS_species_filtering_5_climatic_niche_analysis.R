@@ -463,11 +463,17 @@ stability_df <- foreach(i = 1:length(species_filtered),
                         }
 
 stability_df %>% 
-  arrange(-stability) %>%  View
+  arrange(-stability) %>%  View # 309 species
+# 4 missing species:
+# Anas_crecca: no Birdlife distribution data for 
+# Cistothorus_platensis: BL range does not cover conterminous US
+# Columba_livia: BL range does not cover conterminous US
+# Passerella_iliaca: BL breeding range does not cover conterminous US
+
 
 # save species stability values :
 write.csv(stability_df, 
-          file = file.path(data_dir, "species_stability_contUS_BL22_060423.csv"),
+          file = file.path(data_dir, "species_stability_contUS_BL22_120423.csv"),
           row.names = FALSE)
 
 # plots regarding stability:

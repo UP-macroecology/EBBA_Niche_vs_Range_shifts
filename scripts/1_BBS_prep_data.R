@@ -16,6 +16,10 @@ library(bbsAssistant)
 #data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
 data_dir <- file.path("Data")
 
+# datashare BBS:
+datashare_BBS <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data", "biodat", "distribution", "BBS") 
+
+
 # folder for BBS data:
 # create folder if it doesn't exist yet:
 if(!dir.exists(file.path(data_dir, "BBS"))){dir.create(file.path(data_dir, "BBS"), recursive = TRUE)}
@@ -137,7 +141,7 @@ import_bbs_data_states <- function(bbs_dir, sb_id) {
 bbs_agg <- import_bbs_data_states(bbs_dir = file.path(data_dir, "BBS"), 
                                   sb_id = "5ea04e9a82cefae35a129d65") # sb_id = sb_item of the current BBS dataset (can be looked up by typing sb_items)
 # write species list (to later merge ids to names):
-write.csv(bbs_agg$species_list, file = file.path(data_dir, "BBS_species_list.csv"))
+#write.csv(bbs_agg$species_list, file = file.path(data_dir, "BBS_species_list.csv"))
 
 # merge BBS datasets:
 bbs_merged <- bbs_agg$observations %>% 
@@ -153,18 +157,25 @@ rm(bbs_agg)
 # 3-year periods as in Sofaer et al. 2018 (Sofaer et al. use 1977-1979 and 2012-2014)
 # historic: 2 versions (see following for loop)
 recent <- 2016:2018 # 2018: end of available Chelsa data
+historic_periods <- list(1981:1983, 1996:1998) 
+# 1981-1983: Chelsa data start 1980, historic time period starts 1981 because Chelsa data of year preceding the considered time period are included to account for lag effects (see Sofaer et al. 2018)
+# 1996-1998: yields similar time gap as between EBBA1 and EBBA2
 
 # route sections from which to use data (all five sections are about 40 km)
 sections <- paste0("Count", seq(10, 50, by = 10))
 
+# spatial data on routes:
+
+bbs_routes_sf <- read_sf(file.path(datashare_BBS, "bbs_routes", "bbsrtsl020.shp")) %>% 
+  st_transform(crs = "ESRI:102003") %>% # Albers Equal Area projection
+  mutate(RTENO_BBSf = paste0("840", stringr::str_pad(RTENO, width = 5, side = "left", pad = "0")))# reformat RTENO to match RTENO from BBS data imported with the bbsAssistant package
+
 # loop over 2 versions for historic period:
-for(i in c(1,2)){ 
+for(i in 1:length(historic_periods)){ 
   
-  if(i == 1){
-    historic <- 1980:1982 # 1980: start of available Chelsa data
-    } else {
-      historic <- 1996:1998 # version that yields similar time gap as between EBBA1 and EBBA2
-    }
+  print(i)
+  
+  historic <- historic_periods[[i]]
   
   ## validation route IDs: ----
   
@@ -190,7 +201,7 @@ for(i in c(1,2)){
   
   # filter data, add presence information: ----
   
-  bbs_cleaned <- bbs_merged %>% # 5,726,806
+  bbs_cleaned <- bbs_merged %>%
     
     # use only validation routes (= sampled in all years of both time periods):
     filter(RTENO %in% valid_routes) %>% 
@@ -257,10 +268,64 @@ for(i in c(1,2)){
     left_join(species_names) %>% 
     rename(species = Scientific_Name)
   
-  # write to shapefiles:
-  BBS_hist_sf <- st_as_sf(model_df_hist, coords = c("Longitude", "Latitude"), crs = 4269)
-  st_write(BBS_hist_sf, file.path(data_dir, paste0("BBS_historic", i, ".shp")), append = FALSE)
+  # add route centroids: ----
   
-  BBS_rec_sf <- st_as_sf(model_df_rec, coords = c("Longitude", "Latitude"), crs = 4269)
-  st_write(BBS_rec_sf, file.path(data_dir, paste0("BBS_recent", i, ".shp")), append = FALSE) # recent contains different validation routes depending on historic years considered
+  # for which validation routes do we have spatial information on route:
+
+  bbs_routes_sf_val <- bbs_routes_sf %>% 
+    filter(RTENO_BBSf %in% valid_routes) %>% 
+    group_by(RTENO_BBSf) %>% # in shapefile on datashare some routes consist of two adjacent lines, need to be merged
+    summarise %>%
+    mutate(centroid_X = NA) %>% 
+    mutate(centroid_Y = NA) # 521 (V1), 930 (V2)
+  
+  # extract coordinates of route centroids, if route geometry is available:
+  for(j in 1:nrow(bbs_routes_sf_val)){
+    
+    print(j)
+    
+    centroid_coords <- bbs_routes_sf_val[j,] %>% 
+      st_bbox %>% 
+      st_as_sfc %>% 
+      st_centroid %>% 
+      st_coordinates
+    
+    bbs_routes_sf_val$centroid_X[j] <- centroid_coords[1]
+    bbs_routes_sf_val$centroid_Y[j] <- centroid_coords[2]
+  }
+  
+  # add centroid coordinates to historic df:
+  model_df_hist <- model_df_hist %>% 
+    left_join(st_drop_geometry(bbs_routes_sf_val[,c("RTENO_BBSf", "centroid_X", "centroid_Y")]), by = c("RTENO" = "RTENO_BBSf"))
+  
+  # spatial feature with coordinates = route centroids (if route geometry is not available, use start points)
+  BBS_hist_sf <- st_as_sf(model_df_hist, coords = c("Longitude", "Latitude"), crs = 4269) %>% 
+    st_transform(crs = "ESRI:102003") %>% # Albers Equal Area projection
+    mutate(start_X = st_coordinates(.)[,"X"]) %>% # extract coordinates of start point
+    mutate(start_Y = st_coordinates(.)[,"Y"]) %>%
+    mutate(geom_av = ifelse(is.na(centroid_X), 0, 1)) %>% # add information whether route geometry is available
+    mutate(centroid_X = ifelse(is.na(centroid_X), start_X, centroid_X)) %>% # use start point as coordinate if route geometry is not available
+    mutate(centroid_Y = ifelse(is.na(centroid_Y), start_Y, centroid_Y)) %>% 
+    st_drop_geometry %>% # change geometry from start point to centroid
+    st_as_sf(coords = c("centroid_X", "centroid_Y"), crs = "ESRI:102003")
+  
+  # write to shapefile:
+  st_write(BBS_hist_sf, file.path(data_dir, paste0("BBS_historic", i, "_proj_centroids.shp")), append = FALSE)
+  
+  # add centroid coordinates to recent df:
+  model_df_rec <- model_df_rec %>% 
+    left_join(st_drop_geometry(bbs_routes_sf_val[,c("RTENO_BBSf", "centroid_X", "centroid_Y")]), by = c("RTENO" = "RTENO_BBSf"))
+  
+  BBS_rec_sf <- st_as_sf(model_df_rec, coords = c("Longitude", "Latitude"), crs = 4269) %>% 
+    st_transform(crs = "ESRI:102003") %>% # Albers Equal Area projection
+    mutate(start_X = st_coordinates(.)[,"X"]) %>% # extract coordinates of start point
+    mutate(start_Y = st_coordinates(.)[,"Y"]) %>%
+    mutate(geom_av = ifelse(is.na(centroid_X), 0, 1)) %>% # add information whether route geometry is available
+    mutate(centroid_X = ifelse(is.na(centroid_X), start_X, centroid_X)) %>% # use start point as coordinate if route geometry is not available
+    mutate(centroid_Y = ifelse(is.na(centroid_Y), start_Y, centroid_Y)) %>% 
+    st_drop_geometry %>% # change geometry from start point to centroid
+    st_as_sf(coords = c("centroid_X", "centroid_Y"), crs = "ESRI:102003")
+ 
+  # write to shapefile:
+  st_write(BBS_rec_sf, file.path(data_dir, paste0("BBS_recent", i, "_proj_centroids.shp")), append = FALSE) # recent contains different validation routes depending on historic years considered
 }
