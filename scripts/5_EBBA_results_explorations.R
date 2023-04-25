@@ -148,7 +148,7 @@ dev.off()
 ## dynamics boxplot: -----------------------------------------------------------
 
 ## species-specific background or whole EBBA area as background:
-env_background_species_specific <- TRUE # set to FALSE to use whole EBBA area as environmental background
+env_background_species_specific <- FALSE # set to FALSE to use whole EBBA area as environmental background
 
 # load analyses results (output of 4_niche_shift_analysis.R and 4_range_shift_analysis.R)
 if(env_background_species_specific){
@@ -160,13 +160,15 @@ if(env_background_species_specific){
   }
 
 # species (%) with significant dynamic values:
+
 ## niche:
 niche_test_sign <- niche_results %>% 
-  select(c(species, matches("_p_"))) %>% 
+  select(c(species, matches("_p_"))) %>%
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
   mutate(across(everything(), ~ round(.x/length(sel_species)*100, 2)))
+
 ## range:
 range_test_sign <- range_results %>% 
   select(c(species, matches("_p_"))) %>% 
@@ -195,7 +197,7 @@ spec_sign_lower <- c("NA", # niche abandonment
                       range_test_sign$cons_p_U_NA_n_sig, # range unfilling
                       range_test_sign$shift_p_S_NA_n_sig, # range stabiliy
                       range_test_sign$cons_p_E_NA_n_sig # range expansion
-)
+) # xx rather use analogue conditions?
 
 # join niche and range shift results, convert to long format:
 niche_range_df <- niche_results %>% 
@@ -251,6 +253,7 @@ dev.off()
 
 
 
+
 # for which species are results significant: ----
 
 spec_range_sign_stab <- range_results %>% 
@@ -282,10 +285,10 @@ change_rast <- (bioclim1_hist - bioclim1_rec)/bioclim1_hist * 100 # change in pe
 biovars_hist_rast <- rast(list.files(file.path(EBBA_data_dir, "Bioclim_1981_1990"),
                                      pattern = "50km.tif$",
                                      full.names = TRUE))
-biovars_rec_rast <- rast(list.files(file.path(bioclim_data_dir, "Bioclim_2009_2018"),
+biovars_rec_rast <- rast(list.files(file.path(EBBA_data_dir, "Bioclim_2009_2018"),
                                     pattern = "50km.tif$",
                                     full.names = TRUE))
-change_rast <- (biovars_hist_rast - biovars_rec_rast)/biovars_hist_rast * 100 
+change_rast <- (biovars_hist_rast - biovars_rec_rast)/biovars_hist_rast * 100  # change in percent
 # mask with EBBA comparable area:
 EBBA_mask_sp <- as.polygons(rast(file.path(EBBA_data_dir, "EBBA_mask_ecospat.tif")))
 change_rast_masked <- mask(change_rast, EBBA_mask_sp)
@@ -295,7 +298,8 @@ for(i in 1:nlyr(change_rast_masked)){
   ceil <- values(change_rast_masked[[i]], na.rm=TRUE) |> abs() |> max() |> ceiling() 
   pal <- leaflet::colorNumeric(palette = "RdBu", domain=c(-ceil, ceil), reverse = T)
   # plot:
-  plot(change_rast_masked[[i]], range=c(-ceil, ceil), col=pal(seq(-ceil,ceil,.1)), main = change_rast[[i]]@ptr$names)
+  plot(change_rast_masked[[i]], range=c(-ceil, ceil), col=pal(seq(-ceil,ceil,.1)), 
+       main = change_rast[[i]]@ptr$names)
 }
 
 
