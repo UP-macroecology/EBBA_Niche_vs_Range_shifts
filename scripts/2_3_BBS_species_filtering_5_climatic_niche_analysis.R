@@ -373,9 +373,7 @@ stability_df <- foreach(i = 1:length(species_filtered),
                           
                           # data frame to store results:
                           stability_spec_df <- data.frame("species" = sub("_", " ", species_filtered[i]),
-                                                          "stability" = NA,
-                                                          "niche_breadth_zcor" = NA, #xx
-                                                          "niche_breadth_Z" = NA) #xx
+                                                          "stability" = NA)
                           
                           # read tifs with bioclim variables:
                           # need to be loaded within foreach since SpatRasters and SpatVectors are non-exportable objects
@@ -429,10 +427,7 @@ stability_df <- foreach(i = 1:length(species_filtered),
                                                                 sp = scores.clim.BL, # same for background and occurrences, should be fine for our purpose
                                                                 R = 100, 
                                                                 th.sp = 0)
-                          
-                          stability_spec_df$niche_breadth_zcor <- vegan::diversity(as.vector(grid.clim.BL$z.cor)) #xx extract for later trait analysis
-                          stability_spec_df$niche_breadth_Z <- vegan::diversity(as.vector(grid.clim.BL$Z)) #xx extract for later trait analysis
-                          
+
                           # assess niche dynamics between conterminous US range (as z1) and Birdlife range map (as z2) 
                           # => the stability index shows how much of the species global climatic niche 
                           # is covered by conterminous US:

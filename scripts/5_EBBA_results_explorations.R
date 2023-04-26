@@ -179,25 +179,25 @@ range_test_sign <- range_results %>%
 
 # species (%) with significantly higher dynamics than by chance:
 spec_sign_higher <- c("NA", # niche abandonment
-                      niche_test_sign$shift_p_U_NA_n_sig, # niche unfilling
-                      niche_test_sign$cons_p_S_NA_n_sig, # niche stability
-                      niche_test_sign$shift_p_E_NA_n_sig, # niche expansion
+                      niche_test_sign$shift_p_U_A_n_sig, # niche unfilling
+                      niche_test_sign$cons_p_S_A_n_sig, # niche stability
+                      niche_test_sign$shift_p_E_A_n_sig, # niche expansion
                       "NA", # niche pioneering,
-                      range_test_sign$shift_p_U_NA_n_sig, # range unfilling
-                      range_test_sign$cons_p_S_NA_n_sig, # range stabiliy
-                      range_test_sign$shift_p_E_NA_n_sig # range expansion
+                      range_test_sign$shift_p_U_A_n_sig, # range unfilling
+                      range_test_sign$cons_p_S_A_n_sig, # range stabiliy
+                      range_test_sign$shift_p_E_A_n_sig # range expansion
 )
 
 # species (%) with significantly lower dynamics than by chance:
 spec_sign_lower <- c("NA", # niche abandonment
-                      niche_test_sign$cons_p_U_NA_n_sig, # niche unfilling
-                      niche_test_sign$shift_p_S_NA_n_sig, # niche stability
-                      niche_test_sign$cons_p_E_NA_n_sig, # niche expansion
+                      niche_test_sign$cons_p_U_A_n_sig, # niche unfilling
+                      niche_test_sign$shift_p_S_A_n_sig, # niche stability
+                      niche_test_sign$cons_p_E_A_n_sig, # niche expansion
                       "NA", # niche pioneering,
-                      range_test_sign$cons_p_U_NA_n_sig, # range unfilling
-                      range_test_sign$shift_p_S_NA_n_sig, # range stabiliy
-                      range_test_sign$cons_p_E_NA_n_sig # range expansion
-) # xx rather use analogue conditions?
+                      range_test_sign$cons_p_U_A_n_sig, # range unfilling
+                      range_test_sign$shift_p_S_A_n_sig, # range stabiliy
+                      range_test_sign$cons_p_E_A_n_sig # range expansion
+) # xx rather use non-analogue conditions?
 
 # join niche and range shift results, convert to long format:
 niche_range_df <- niche_results %>% 
@@ -246,7 +246,7 @@ p
 # p
 # dev.off()
 
-pdf(file = file.path(plots_dir, paste0("Boxplot_dynamics_env_species_spec_", env_background_species_specific, ".pdf")),
+pdf(file = file.path(plots_dir, paste0("EBBA_boxplot_dynamics_env_species_spec_", env_background_species_specific, ".pdf")),
     height = 5, width = 8)
 p
 dev.off()

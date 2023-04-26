@@ -1,6 +1,6 @@
-# Assemble trait data for European and North American bird species left after 5 filtering steps:
-# (2_1_species_filtering_1-4.R and 2_3_species_filtering_5_climatic_niche_analysis.R) # xx
-# climatic niche coverage > 50 %
+# 1) Assemble trait data for European and North American bird species left after 5 filtering steps
+# (2_1_species_filtering_1-4.R and 2_3_species_filtering_5_climatic_niche_analysis.R)
+# using AVONET data
 
 library(dplyr)
 
