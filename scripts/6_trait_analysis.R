@@ -7,8 +7,8 @@ library(ggplot2)
 data_dir <- file.path("Data")
 
 # use EBBA or BBS results:
-#dataset <- "BBS"
-dataset <- "EBBA" 
+dataset <- "BBS"
+#dataset <- "EBBA" 
 
 # use results of background = buffer around presences (TRUE) (or background = whole EBBA-area / conterminous US):
 env_background_species_specific <- TRUE
@@ -120,7 +120,7 @@ cor.test(res_traits_df$D_niche, res_traits_df$D_range, alternative = "two.sided"
 
 # Niche and range overlap (D) ~ 
 
-## Trophic level:
+## Trophic level:----
 
 boxplot_fun(data = res_traits_df, x = Trophic.Level, y = D_range,
             ylab = "range overlap D", ylim = c(0, 1), 
@@ -138,10 +138,10 @@ boxplot_fun(data = res_traits_df, x = Trophic.Level, y = diff_range_niche_D,
 
 ### stability ~ trophic level:
 boxplot_fun(data = res_traits_df, x = Trophic.Level, y = range_stability_std,
-            ylab = "range S", ylim = c(0, 1), 
+            ylab = "range S", ylim = c(0.7, 1), 
             title = paste0(dataset, ", background = buffer"), filename = "range_S~trophic_level.pdf")
 boxplot_fun(data = res_traits_df, x = Trophic.Level, y = niche_stability_std,
-            ylab = "niche S", ylim = c(0, 1), 
+            ylab = "niche S", ylim = c(0.7, 1), 
             title = paste0(dataset, ", background = buffer"), filename = "niche_S~trophic_level.pdf")
 
 ### expansion ~ trophic level:
@@ -197,40 +197,7 @@ boxplot_fun(data = res_traits_df, x = Trophic.Level, y = shift_p_S_A_niche,
             title = paste0(dataset, ", background = buffer"), filename = "niche_shift_p_S~trophic_level.pdf")
 
 
-## Trophic niche:
-
-boxplot_fun(data = res_traits_df, x = Trophic.Niche, y = D_range,
-            ylab = "range overlap D", ylim = c(0, 1), 
-            title = paste0(dataset, ", background = buffer"), filename = "range_D~trophic_niche.pdf",
-            width = 10)
-boxplot_fun(data = res_traits_df, x = Trophic.Niche, y = D_niche,
-            ylab = "niche overlap D", ylim = c(0, 1), 
-            title = paste0(dataset, ", background = buffer"), filename = "niche_D~trophic_niche.pdf",
-            width = 10)
-# difference range D - niche D:
-boxplot_fun(data = res_traits_df, x = Trophic.Niche, y = diff_range_niche_D,
-            ylab = "range D - niche D", ylim = range(res_traits_df$diff_range_niche_D), 
-            title = paste0(dataset, ", background = buffer"), filename = "diff_rangeD_niche_D~trophic_niche.pdf",
-            width = 8)
-
-## Primary lifestyle:
-
-boxplot_fun(data = res_traits_df, x = Primary.Lifestyle, y = D_range,
-            ylab = "range overlap D", ylim = c(0, 1), 
-            title = paste0(dataset, ", background = buffer"), filename = "range_D~primary_lifestyle.pdf",
-            width = 10)
-boxplot_fun(data = res_traits_df, x = Primary.Lifestyle, y = D_niche,
-            ylab = "niche overlap D", ylim = c(0, 1), 
-            title = paste0(dataset, ", background = buffer"), filename = "niche_D~primary_lifestyle.pdf",
-            width = 10)
-
-# difference range D - niche D:
-boxplot_fun(data = res_traits_df, x = Primary.Lifestyle, y = diff_range_niche_D,
-            ylab = "range D - niche D", ylim = range(res_traits_df$diff_range_niche_D), 
-            title = paste0(dataset, ", background = buffer"), filename = "diff_rangeD_niche_D~primary_lifestyle.pdf",
-            width = 8)
-
-## Habitat:
+## Habitat: ----
 
 boxplot_fun(data = res_traits_df, x = Habitat, y = D_range,
             ylab = "range overlap D", ylim = c(0, 1), 
@@ -254,22 +221,18 @@ boxplot_fun(data = res_traits_df, x = Habitat, y = diff_range_niche_D,
             width = 8)
 
 
-## Migration:
-
-boxplot_fun(data = res_traits_df, x = as.factor(Migration), y = D_range,
-            ylab = "range overlap D", ylim = c(0, 1), 
-            title = paste0(dataset, ", background = buffer"), filename = "range_D~Migration.pdf")
-boxplot_fun(data = res_traits_df, x = as.factor(Migration), y = D_niche,
-            ylab = "niche overlap D", ylim = c(0, 1), 
-            title = paste0(dataset, ", background = buffer"), filename = "niche_D~Migration.pdf")
-
-# difference range D - niche D:
-boxplot_fun(data = res_traits_df, x = as.factor(Migration), y = diff_range_niche_D,
-            ylab = "range D - niche D", ylim = range(res_traits_df$diff_range_niche_D), 
-            title = paste0(dataset, ", background = buffer"), filename = "diff_rangeD_niche_D~migration.pdf",
+### stability ~ habitat:
+boxplot_fun(data = res_traits_df, x = Habitat, y = range_stability_std,
+            ylab = "range S", ylim = c(0.5, 1), 
+            title = paste0(dataset, ", background = buffer"), filename = "range_S~Habitat.pdf",
+            width = 8)
+boxplot_fun(data = res_traits_df, x = Habitat, y = niche_stability_std,
+            ylab = "niche S", ylim = c(0.5, 1), 
+            title = paste0(dataset, ", background = buffer"), filename = "niche_S~Habitat.pdf",
             width = 8)
 
-## Body weight:
+
+## Body weight:----
 
 scatterplot_fun(data = res_traits_df, x = Mass, y = D_range,
                 ylab = "range overlap D", xlab = "Body weight",
@@ -305,8 +268,27 @@ scatterplot_fun(data = res_traits_df, x = Mass, y = diff_range_niche_D,
                 filename = "diff_rangeD_niche_D~body_weight.pdf",
                 width = 8, height = 5, ylim = range(res_traits_df$diff_range_niche_D))
 
+### stability ~ body weight:
+scatterplot_fun(data = res_traits_df, x = Mass, y = range_stability_std,
+            ylab = "range S", ylim = c(0.5, 1),xlab = "Body weight",
+            title = paste0(dataset, ", background = buffer"), filename = "range_S~body_weight.pdf")
+scatterplot_fun(data = res_traits_df, x = Mass, y = niche_stability_std,
+            ylab = "niche S", ylim = c(0.5, 1), xlab = "Body weight",
+            title = paste0(dataset, ", background = buffer"), filename = "niche_S~body_weight.pdf",
+            width = 8)
 
-## Latitudinal range centroid:
+### expansion ~ body weight:
+scatterplot_fun(data = res_traits_df, x = Mass, y = range_expansion_std,
+                ylab = "range E", ylim = c(0, 0.5),xlab = "Body weight",
+                title = paste0(dataset, ", background = buffer"), filename = "range_E~body_weight.pdf")
+scatterplot_fun(data = res_traits_df, x = Mass, y = niche_expansion_std,
+                ylab = "niche E", ylim = c(0, 0.5), xlab = "Body weight",
+                title = paste0(dataset, ", background = buffer"), filename = "niche_E~body_weight.pdf",
+                width = 8)
+
+
+
+## Latitudinal range centroid: ----
 
 scatterplot_fun(data = res_traits_df, x = Centroid.Latitude, y = D_range,
                 ylab = "range overlap D", xlab = "Lat. range centroid",
@@ -355,3 +337,51 @@ scatterplot_fun(data = res_traits_df, x = Range.Size, y = range_stability_std,
                 title = paste0(dataset, ", background = buffer"), 
                 filename = "range_S~range_size.pdf",
                 width = 8, height = 5)
+
+## Trophic niche:
+
+boxplot_fun(data = res_traits_df, x = Trophic.Niche, y = D_range,
+            ylab = "range overlap D", ylim = c(0, 1), 
+            title = paste0(dataset, ", background = buffer"), filename = "range_D~trophic_niche.pdf",
+            width = 10)
+boxplot_fun(data = res_traits_df, x = Trophic.Niche, y = D_niche,
+            ylab = "niche overlap D", ylim = c(0, 1), 
+            title = paste0(dataset, ", background = buffer"), filename = "niche_D~trophic_niche.pdf",
+            width = 10)
+# difference range D - niche D:
+boxplot_fun(data = res_traits_df, x = Trophic.Niche, y = diff_range_niche_D,
+            ylab = "range D - niche D", ylim = range(res_traits_df$diff_range_niche_D), 
+            title = paste0(dataset, ", background = buffer"), filename = "diff_rangeD_niche_D~trophic_niche.pdf",
+            width = 8)
+
+## Primary lifestyle:
+
+boxplot_fun(data = res_traits_df, x = Primary.Lifestyle, y = D_range,
+            ylab = "range overlap D", ylim = c(0, 1), 
+            title = paste0(dataset, ", background = buffer"), filename = "range_D~primary_lifestyle.pdf",
+            width = 10)
+boxplot_fun(data = res_traits_df, x = Primary.Lifestyle, y = D_niche,
+            ylab = "niche overlap D", ylim = c(0, 1), 
+            title = paste0(dataset, ", background = buffer"), filename = "niche_D~primary_lifestyle.pdf",
+            width = 10)
+
+# difference range D - niche D:
+boxplot_fun(data = res_traits_df, x = Primary.Lifestyle, y = diff_range_niche_D,
+            ylab = "range D - niche D", ylim = range(res_traits_df$diff_range_niche_D), 
+            title = paste0(dataset, ", background = buffer"), filename = "diff_rangeD_niche_D~primary_lifestyle.pdf",
+            width = 8)
+
+## Migration:
+
+boxplot_fun(data = res_traits_df, x = as.factor(Migration), y = D_range,
+            ylab = "range overlap D", ylim = c(0, 1), 
+            title = paste0(dataset, ", background = buffer"), filename = "range_D~Migration.pdf")
+boxplot_fun(data = res_traits_df, x = as.factor(Migration), y = D_niche,
+            ylab = "niche overlap D", ylim = c(0, 1), 
+            title = paste0(dataset, ", background = buffer"), filename = "niche_D~Migration.pdf")
+
+# difference range D - niche D:
+boxplot_fun(data = res_traits_df, x = as.factor(Migration), y = diff_range_niche_D,
+            ylab = "range D - niche D", ylim = range(res_traits_df$diff_range_niche_D), 
+            title = paste0(dataset, ", background = buffer"), filename = "diff_rangeD_niche_D~migration.pdf",
+            width = 8)
