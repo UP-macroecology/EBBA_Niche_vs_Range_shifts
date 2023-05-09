@@ -29,7 +29,8 @@ data_dir <- file.path("Data")
 EBBA_species_final <- read.csv(file = file.path(data_dir, "species_stability_EBBA2_BL22_030423.csv")) %>% 
   arrange(-stability) %>% 
   filter(stability >= 0.5) %>% 
-  pull(species)
+  pull(species) %>% 
+  sort
 
 BBS_species_final <- read.csv(file = file.path(data_dir, "species_stability_contUS_BL22_060423.csv")) %>% 
   arrange(-stability) %>% 
@@ -49,6 +50,7 @@ EBBA_avonet <- subset(avonet_BL, avonet_BL$Species1 %in% EBBA_species_final)
 # all selected EBBA species are found in AVONET
 write.csv(EBBA_avonet, file = file.path(data_dir, "AVONET_EBBA_species.csv"),
           row.names = FALSE)
+
 
 # AVONET data for selected BBS species: ----------------------------------------
 

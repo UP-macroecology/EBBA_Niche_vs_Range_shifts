@@ -38,7 +38,7 @@ if(dataset == "EBBA"){
   }
   
   # species left after filtering step 4:
-  load(file = file.path(data_dir, "EBBA1_EBBA2_prep_steps1-4_prelim.RData")) # output of 2_1_EBBA_species_filtering_1-4.R
+  load(file = file.path(data_dir, "EBBA1_EBBA2_prep_steps1-4_final.RData")) # output of 2_1_EBBA_species_filtering_1-4.R
   species_filtered <- sort(sub(" ", "_", unique(EBBA1_prep$species)))
   
   # files of rasterized and projected Birdlife ranges:

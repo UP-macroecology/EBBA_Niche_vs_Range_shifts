@@ -34,7 +34,7 @@ EBBA_data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EB
 bioclim_data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA")
 
 # should environmental background be species-specific (500 km buffer around presences) or the same for all species (whole EBBA area):
-env_background_species_specific <- FALSE # set to FALSE to use whole EBBA area as environmental background
+env_background_species_specific <- TRUE # set to FALSE to use whole EBBA area as environmental background
 
 # folder for niche dynamics plots:
 if(env_background_species_specific){
@@ -63,9 +63,9 @@ EBBA1_cells <- read_sf(file.path(EBBA_data_dir, "EBBA_change.shp")) %>% # output
   select(-species, -Change) %>% 
   distinct(cell50x50, .keep_all = TRUE) # keep geometry; would be the same when using EBBA2
 
-# species selection: 
-sel_species <- read.csv(file.path(EBBA_data_dir, "EBBA_niche_range_shifts_species_selection_change.csv"))$species %>% # output of 2_3_species_filtering_5_climatic_niche_analysis.R
-  sort # alphabetically sorted (to avoid confusion with indices later)
+# species selection:
+load(file = file.path(EBBA_data_dir, "EBBA1_EBBA2_prep_steps1-4_final.RData")) # output of 2_1_EBBA_species_filtering_1-4.R
+sel_species <- sort(unique(EBBA1_prep$species))
 
 # EBBA 1, only selected species: 
 EBBA1_sel_spec_df <- read_sf(file.path(EBBA_data_dir, "EBBA1_change.shp")) %>% # output of 1_prep_EBBA_data.R
@@ -146,7 +146,7 @@ if(env_background_species_specific == FALSE){
 # loop over species:
 
 # register cores for parallel computation:
-registerDoParallel(cores = 10)
+registerDoParallel(cores = 2)
 #getDoParWorkers() # check registered number of cores
 
 niche_shift_df <- foreach(s = 1:length(sel_species),

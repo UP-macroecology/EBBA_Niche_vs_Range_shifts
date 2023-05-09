@@ -37,7 +37,7 @@ library(ade4)
 EBBA_data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
 
 # should environmental background be species-specific (500 km buffer around presences) or the same for all species (whole EBBA area):
-env_background_species_specific <- FALSE # set to FALSE to use whole EBBA area as environmental background
+env_background_species_specific <- TRUE # set to FALSE to use whole EBBA area as environmental background
 
 # folder for range dynamics plots:
 if(env_background_species_specific){
@@ -66,9 +66,9 @@ EBBA1_cells <- read_sf(file.path(EBBA_data_dir, "EBBA_change.shp")) %>% # output
   select(-species, -Change) %>% 
   distinct(cell50x50, .keep_all = TRUE) # keep geometry; would be the same when using EBBA2
 
-# species selection: 
-sel_species <- read.csv(file.path(EBBA_data_dir, "EBBA_niche_range_shifts_species_selection_change.csv"))$species %>% # output of 2_3_species_filtering_5_climatic_niche_analysis.R
-  sort # alphabetically sorted (to avoid confusion with indices later)
+# species selection:
+load(file = file.path(EBBA_data_dir, "EBBA1_EBBA2_prep_steps1-4_final.RData")) # output of 2_1_EBBA_species_filtering_1-4.R
+sel_species <- sort(unique(EBBA1_prep$species))
 
 # EBBA 1, only selected species:
 EBBA1 <- read_sf(file.path(EBBA_data_dir, "EBBA1_change.shp")) %>% # output of 1_prep_EBBA_data.R
@@ -93,7 +93,8 @@ range_shift_df <- data.frame("species" = sel_species,
                              "centroid_NS_shift" = NA, # north-south shift
                              "centroid_EW_shift" = NA, # east-west shift
                              "n_cells_hist" = NA,
-                             "n_cells_rec" = NA
+                             "n_cells_rec" = NA,
+                             "direction_degr" = NA # direction of range shift (degree)
                              )
 
 # central range coordinate historic time of each species:
@@ -138,6 +139,26 @@ range_shift_df$n_cells_rec <- EBBA2 %>%
   group_by(species) %>% 
   summarize(n_cells = n(), .groups = "keep") %>% 
   pull(n_cells)
+
+# direction of range shift:
+
+## historic range centroids:
+hist_centroids <- range_shift_df[, c("species", "centroid_hist_X", "centroid_hist_Y")] %>% 
+  st_as_sf(coords = c("centroid_hist_X","centroid_hist_Y"),
+           crs = 3035) %>% 
+  st_transform(crs = 4326) %>% # transform and convert to SpatialPoints to calculate bearing
+  as_Spatial()
+
+## recent range centroids:
+rec_centroids <- range_shift_df[, c("species", "centroid_rec_X", "centroid_rec_Y")] %>% 
+  st_as_sf(coords = c("centroid_rec_X","centroid_rec_Y"),
+           crs = 3035) %>% 
+  st_transform(crs = 4326) %>% 
+  as_Spatial()
+
+## direction of shift (?):
+range_shift_df$direction_degr <- geosphere::bearing(p1 = hist_centroids, 
+                                                   p2 = rec_centroids)
 
 
 # ------------------------------------------------ #
@@ -434,7 +455,6 @@ range_ecospat_df <- foreach(s = 1:length(sel_species),
                               
                               range_ecospat_s
                             }
-
 
 ## standardise range dynamic metrics: ------------------------------------------
 

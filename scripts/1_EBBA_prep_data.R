@@ -324,7 +324,7 @@ st_write(EBBA2_taxunif_sf, file.path("Data", "EBBA2_comparable_harmonized.shp"))
 EBBA_change <- read.csv2(file.path(datashare_EBCC, "EBBA_change", "ebba2_data_change_50km.csv"))
 EBBA_change
 table(EBBA_change$Change)
-length(unique(EBBA_change$birdlife_scientific_name)) # 149 species
+length(unique(EBBA_change$birdlife_scientific_name)) # 152 species
 # which one is missing:
 species_selection <- read.csv(file = file.path("Data", "EBBA_niche_range_shifts_species_selection.csv"))
 species_selection$species[which(!species_selection$species %in% EBBA_change$birdlife_scientific_name)]
@@ -355,6 +355,6 @@ EBBA2_ch_sf <- EBBA_change_sf %>%
 # not necessary to harmonise taxonomy or to remove non comparable cells
 
 # save:
-st_write(EBBA_change_sf, file.path("Data", "EBBA_change.shp"))
-st_write(EBBA1_ch_sf, file.path("Data", "EBBA1_change.shp"))
-st_write(EBBA2_ch_sf, file.path("Data", "EBBA2_change.shp"))
+st_write(EBBA_change_sf, file.path("Data", "EBBA_change.shp"), append = FALSE)
+st_write(EBBA1_ch_sf, file.path("Data", "EBBA1_change.shp"), append = FALSE)
+st_write(EBBA2_ch_sf, file.path("Data", "EBBA2_change.shp"), append = FALSE)

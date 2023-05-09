@@ -6,15 +6,21 @@ library(terra)
 library(ggplot2)
 library(tidyr)
 library(cowplot)
+library(ade4)
+
+# ------------------------------ #
+#            Set-up:          ####
+# ------------------------------ #
 
 data_dir <- file.path("Data")
+plots_dir <- file.path("plots")
 
 # which historic time period should be used:
 #hist_years <- 1980:1983 # maximum gap between historic and recent time period
 hist_years <- 1995:1998 # similar gap between historic and recent time period as in EBBA analysis
 
 # environmental background: use presences and absences within 600 km buffer around presences or all true absences within conterminous US:
-env_background_contUS <- TRUE # set to FALSE to use presences and absences within 600 km buffer around presences
+env_background_contUS <- FALSE # set to FALSE to use presences and absences within 600 km buffer around presences
 
 
 # ---------------------------- #
@@ -288,6 +294,265 @@ p
 pdf(file = file.path("plots", paste0(res_boxplot, ".pdf")),
     height = 5, width = 8)
 p
+dev.off()
+
+
+## dynamics correlation plots: ----
+
+metrics_df <- range_results %>% 
+  left_join(niche_results, by = c("species" = "species")) %>% 
+  select(range_stability_std, range_unfilling_std, range_expansion_std,
+         niche_stability_std, niche_unfilling_std, niche_expansion_std)
+
+p1 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_unfilling_std)) +
+  geom_point() + geom_smooth(method = "lm") +
+  theme_bw() + xlab("niche U") + ylab("range E")
+p2 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_stability_std)) +
+  geom_point() + geom_smooth(method = "lm") +
+  theme_bw() + xlab("niche S") + ylab("range E")
+p3 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_expansion_std)) +
+  geom_point() + geom_smooth(method = "lm") +
+  theme_bw() + xlab("niche E") + ylab("range E")
+
+p4 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_unfilling_std)) +
+  geom_point() + geom_smooth(method = "lm") +
+  theme_bw() + xlab("niche U") + ylab("range S")
+p5 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_stability_std)) +
+  geom_point() + geom_smooth(method = "lm") +
+  theme_bw() + xlab("niche S") + ylab("range S")
+p6 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_expansion_std)) +
+  geom_point() + geom_smooth(method = "lm") +
+  theme_bw() + xlab("niche E") + ylab("range S")
+
+p7 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_unfilling_std)) +
+  geom_point() + geom_smooth(method = "lm") +
+  theme_bw() + xlab("niche U") + ylab("range U")
+p8 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_stability_std)) +
+  geom_point() + geom_smooth(method = "lm") +
+  theme_bw() + xlab("niche S") + ylab("range U")
+p9 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_expansion_std)) +
+  geom_point() + geom_smooth(method = "lm") +
+  theme_bw() + xlab("niche E") + ylab("range U")
+
+
+pdf(file = file.path(plots_dir, paste0("BBS_correlation_niche_range_dynamics_hist_", min(hist_years), "_", max(hist_years), ".pdf")),
+    height = 5, width = 8)
+plot_grid(p1, p2, p3, p4, p5, p6, p7, p8, p9,
+          align = "h",
+          axis = "tblr",
+          nrow = 3,
+          ncol = 3)
+dev.off()
+
+
+## climate change as PCA based maps: ----
+
+# climate data historic period:
+biovars_hist_rast <- rast(list.files(file.path(data_dir, paste0("Bioclim_", min(hist_years), "_", max(hist_years))),
+                                     pattern = "1km.tif$",
+                                     full.names = TRUE))
+
+# aggregate to 50 km resolution (as EBBA):
+biovars_hist_rast_50km <- biovars_hist_rast %>% 
+  aggregate(fact = 50, fun = "mean", na.rm = TRUE)
+
+# extract cell values:
+hist_climate_data <- values(biovars_hist_rast_50km, dataframe = TRUE, na.rm = TRUE)
+
+# climate data recent period:
+biovars_rec_rast <- rast(list.files(file.path(data_dir, "Bioclim_2015_2018"),
+                                     pattern = "1km.tif$",
+                                     full.names = TRUE))
+
+# aggregate to 50 km resolution (as EBBA):
+biovars_rec_rast_50km <- biovars_rec_rast %>% 
+  aggregate(fact = 50, fun = "mean", na.rm = TRUE)
+
+# extract cell values:
+rec_climate_data <- values(biovars_rec_rast_50km, dataframe = TRUE, na.rm = TRUE)
+
+
+# assess climate niche by using the first 2 PCA axes:
+# calibrating the PCA in the whole study area:
+pca.env <- dudi.pca(rbind(hist_climate_data, rec_climate_data)[, paste0("bio", 1:19)],
+                    scannf = FALSE,
+                    nf = 2) # number of axes
+
+# plot(x = pca.env$li$Axis1, y = pca.env$li$Axis2)
+# nrow(EBBA1_climate_data)
+# nrow(EBBA2_climate_data)
+# nrow(pca.env$li)
+
+ecospat::ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig)
+
+p_biplot1 <- factoextra::fviz_pca_var(pca.env,
+                                      gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                                      repel = TRUE,
+                                      title = "")     # Avoid text overlapping
+
+p_biplot2 <- factoextra::fviz_pca_biplot(pca.env, repel = TRUE,
+                                         col.var = "black", # Variables color
+                                         col.ind = c(rep("historic", nrow(hist_climate_data)),
+                                                     rep("recent", nrow(rec_climate_data))),  # Individuals color
+                                         label = "var",
+                                         palette = c( "red", "blue"),
+                                         pointsize = 1.5,
+                                         alpha.ind = 0.1,
+                                         legend.title = "",
+                                         title = "",
+                                         legend = c(0.9, 0.9))
+
+
+# PCA scores for whole EBBA1 area:
+scores.clim.hist <- suprow(pca.env, hist_climate_data[, paste0("bio", 1:19)])$li
+# PCA scores for whole EBBA2 area:
+scores.clim.rec <- suprow(pca.env, rec_climate_data[, paste0("bio", 1:19)])$li
+
+
+# match cell IDs:
+map_df <- data.frame("cell_num" = 1:ncell(biovars_hist_rast_50km[[1]]),
+                     "diff_PC1" = NA,
+                     "diff_PC2" = NA)
+map_df$diff_PC1[as.numeric(row.names(scores.clim.hist))] <- scores.clim.rec$Axis1 - scores.clim.hist$Axis1 # change       
+map_df$diff_PC2[as.numeric(row.names(scores.clim.hist))] <- scores.clim.rec$Axis2 - scores.clim.hist$Axis2 # change  
+
+# PC difference rasters:
+diff_PC1_rast <- rast(x = biovars_hist_rast_50km[[1]],
+                      vals = map_df$diff_PC1,
+                      names = "diff_PC1")
+
+diff_PC2_rast <- rast(x = biovars_hist_rast_50km[[1]],
+                      vals = map_df$diff_PC2,
+                      names = "diff_PC2")
+
+# change to sf object to use same code for plots:
+map_sf <- diff_PC1_rast %>% 
+  as.polygons(trunc = FALSE) %>% 
+  st_as_sf
+
+diff_PC2_sf <- diff_PC2_rast %>% 
+  as.polygons(trunc = FALSE) %>% 
+  st_as_sf
+
+map_sf$diff_PC2 <- diff_PC2_sf$diff_PC2
+
+# maps:
+plot(map_sf["diff_PC1"])
+plot(map_sf["diff_PC2"])
+plot(map_sf["diff_PC1"], axes = TRUE, graticule = TRUE)
+
+limit <- max(abs(map_sf$diff_PC1)) * c(-1, 1)
+
+world <- rnaturalearth::ne_countries(returnclass = "sf") %>% 
+  st_transform("EPSG:3035")
+
+p_diff_pc1 <- ggplot() +
+  geom_sf(data = map_sf, aes(fill = diff_PC1), colour = NA) +
+  scale_fill_distiller("PC1\n(recent - historic)", type = "div", 
+                       palette = "RdBu", limit = limit) +
+  geom_sf(data = world, colour = "gray20", fill = NA) +
+  lims(x = c(-2400000, 2200000), y = c(-1300000, 1600000))
+
+p_diff_pc2 <- ggplot() +
+  geom_sf(data = map_sf, aes(fill = diff_PC2), colour = NA) +
+  scale_fill_distiller("PC2\n(recent - historic)", type = "div", 
+                       palette = "RdBu", limit = limit) +
+  geom_sf(data = world, colour = "gray20", fill = NA) +
+  lims(x = c(-2400000, 2200000), y = c(-1300000, 1600000))
+
+# combine biplot and difference maps in one plot:
+p_climate_change <- plot_grid(p_biplot2, p_diff_pc1, p_diff_pc2,
+                              labels = "AUTO",
+                              align = "h",
+                              nrow = 1,
+                              axis = "tblr",
+                              rel_widths = c(1.5, 1.5, 1.5),
+                              rel_heights = c(0.25, 5, 5)
+)
+p_climate_change
+# save plot:
+pdf(file = file.path(plots_dir, "BBS_climate_change_PCA_plots.pdf"),
+    height = 5, width = 20)
+p_climate_change
+dev.off()
+
+
+## direction of range shifts: ----
+
+range_results
+
+# historic range centroids:
+hist_centroids <- range_results[, c("species", "centroid_hist_X", "centroid_hist_Y")] %>% 
+  st_as_sf(coords = c("centroid_hist_X","centroid_hist_Y"),
+           crs = 3035) %>% 
+  st_transform(crs = 4326) %>% # transform and convert to SpatialPoints to calculate bearing
+  as_Spatial()
+
+# recent range centroids:
+rec_centroids <- range_results[, c("species", "centroid_rec_X", "centroid_rec_Y")] %>% 
+  st_as_sf(coords = c("centroid_rec_X","centroid_rec_Y"),
+           crs = 3035) %>% 
+  st_transform(crs = 4326) %>% 
+  as_Spatial()
+
+# direction of shift (?):
+range_results$direction_degr <- geosphere::bearing(p1 = hist_centroids, 
+                                                   p2 = rec_centroids)
+
+summary(range_results$direction_degr)
+
+# points:
+dir_shift_p <- ggplot(range_results, aes(x = direction_degr, y = centroid_dist/1000)) +
+  geom_point() + 
+  geom_segment(aes(x = direction_degr, xend = direction_degr, y=0, yend = centroid_dist/1000)) +
+  ylab("Range shift [km]") +
+  xlab("") +
+  coord_polar(start = pi, direction = 1) +
+  scale_x_continuous(limits = c(-180,180),
+                     breaks = seq(-180, 180, by = 30),
+                     minor_breaks = seq(-180, 180, by = 15)) +
+  scale_y_continuous(trans = 'log',
+                     breaks = c(0, 25, 50,100, 200, 400, 800)) +
+  theme_minimal()
+
+# points without log transform:
+dir_shift_p2 <- ggplot(range_results, aes(x = direction_degr, y = centroid_dist/1000)) +
+  geom_point() + 
+  geom_segment(aes(x = direction_degr, xend = direction_degr, y=0, yend = centroid_dist/1000)) +
+  ylab("Range shift [km]") +
+  xlab("") +
+  coord_polar(start = pi, direction = 1) +
+  scale_x_continuous(limits = c(-180,180),
+                     breaks = seq(-180, 180, by = 30),
+                     minor_breaks = seq(-180, 180, by = 15)) +
+  theme_minimal()
+
+
+# histogram:
+dir_shift_hist <- ggplot(range_results, aes(x = direction_degr)) +
+  geom_histogram(breaks = seq(-180, 180, by = 10)) +
+  coord_polar(start = pi, direction = 1) +
+  scale_x_continuous(limits = c(-180, 180),
+                     breaks = seq(-180, 180, by = 30),
+                     minor_breaks = seq(-180, 180, by = 15)) +
+  xlab("") +
+  theme_minimal()
+# fill by distance category?
+
+# save plots:
+pdf(file = file.path(plots_dir, paste0("BBS_range_shift_direction_hist_", min(hist_years), "_", max(hist_years), "_env_cont_US_", env_background_contUS, ".pdf")),
+    height = 5, width = 6)
+dir_shift_p
+dev.off()
+
+pdf(file = file.path(plots_dir, paste0("BBS_range_shift_direction2_hist_", min(hist_years), "_", max(hist_years), "_env_cont_US_", env_background_contUS, ".pdf")),
+    height = 5, width = 6)
+dir_shift_p2
+dev.off()
+
+pdf(file = file.path(plots_dir, paste0("BBS_range_shift_direction_hist_hist_", min(hist_years), "_", max(hist_years), "_env_cont_US_", env_background_contUS, ".pdf")),
+    height = 5, width = 6)
+dir_shift_hist
 dev.off()
 
 

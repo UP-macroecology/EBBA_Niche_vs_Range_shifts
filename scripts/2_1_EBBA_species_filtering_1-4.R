@@ -8,13 +8,36 @@
 library(sf)
 library(dplyr)
 
+
+# Set-up: ----
+
+# final or preliminary filtering:
+final_filtering <- TRUE # TRUE: filtering of EBBA change data, FALSE = preliminary filtering to request EBBA change data
+
+# results file:
+if(final_filtering){
+  res_file <- file.path("Data", "EBBA1_EBBA2_prep_steps1-4_final.RData")
+} else {
+  res_file <- file.path("Data", "EBBA1_EBBA2_prep_steps1-4_prelim.RData")
+}
+
+
+# Load data: ----
+
 # read prepared EBBA data (output of 1_EBBA_prep_data.R):
 
-EBBA1_prep_sf <- st_read(file.path("Data", "EBBA1_comparable_harmonized.shp"))
-EBBA2_prep_sf <- st_read(file.path("Data", "EBBA2_comparable_harmonized.shp"))
+if(final_filtering){
+  EBBA1_prep_sf <- st_read(file.path("Data", "EBBA1_change.shp"))
+  EBBA2_prep_sf <- st_read(file.path("Data", "EBBA2_change.shp"))
+  EBBA_cells_sf <- st_read(file.path("Data", "EBBA_change.shp"))
+  
+} else {
+  EBBA1_prep_sf <- st_read(file.path("Data", "EBBA1_comparable_harmonized.shp"))
+  EBBA2_prep_sf <- st_read(file.path("Data", "EBBA2_comparable_harmonized.shp"))
+  # read prepared EBBA data (output of 1_prep_EBBA_data.R, before taxonomic harmonization, to get number of comparable EBBA cells):
+  EBBA_cells_sf <- st_read(file.path("Data", "EBBA1_comparable.shp"))
+}
 
-#EBBA1_prep_sf <- st_read(file.path("Data", "EBBA1_change.shp"))
-#EBBA2_prep_sf <- st_read(file.path("Data", "EBBA2_change.shp"))
 
 # drop geometry (not needed to create species list)
 EBBA1_prep <- EBBA1_prep_sf %>% 
@@ -25,6 +48,7 @@ EBBA2_prep <- EBBA2_prep_sf %>%
 length(unique(EBBA1_prep$species)) # 445 species
 length(unique(EBBA2_prep$species)) # 517 species
 
+# Filtering: ----
 
 ## 1. exclude pelagic specialists (according to Wilman et al. 2014): ----
 
@@ -61,14 +85,8 @@ length(unique(EBBA2_prep$species)) # 390 species left
 ## 3. exclude very common species with >90% prevalence in both atlas periods: ----
 # = occur in >90% EBBA cells:
 
-# read prepared EBBA data (output of 1_prep_EBBA_data.R, before taxonomic harmonization, to get number of comparable EBBA cells):
-EBBA1_comp_sf <- st_read(file.path("Data", "EBBA1_comparable.shp"))
-EBBA2_comp_sf <- st_read(file.path("Data", "EBBA2_comparable.shp"))
-
-#EBBA_change_sf <- st_read(file.path("Data", "EBBA_change.shp"))
-
-nEBBAcells <- length(unique(EBBA1_comp_sf$cell50x50)) # 2845 (EBBA2 methods chapter: "change map thus encompassed a total of 2,972 50-km squares"; here less because I excluded cells from EBBA2 not in EBBA1, the 2,972 squares contain cells not included in change analysis due to insufficient coverage?!
-nEBBAcells <- length(unique(EBBA_change_sf$cell50x50)) # 2913 xx
+# number of comparable EBBA cells:
+nEBBAcells <- length(unique(EBBA_cells_sf$cell50x50)) # 2913
 
 # which species are excluded:
 EBBA1_prep %>% 
@@ -109,6 +127,6 @@ EBBA1_prep %>%
 
 EBBA2_prep %>%
   arrange(-n_occurrences) %>%
-  distinct(species, n_occurrences) %>% View
+  distinct(species, n_occurrences)
 
-save(EBBA1_prep, EBBA2_prep, file = file.path("Data", "EBBA1_EBBA2_prep_steps1-4_prelim.RData"))
+save(EBBA1_prep, EBBA2_prep, file = res_file)

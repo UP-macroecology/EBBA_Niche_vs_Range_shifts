@@ -68,6 +68,10 @@ if(dataset == "EBBA"){
   
   avonet <- read.csv(file = file.path(data_dir, "AVONET_EBBA_species.csv"))
   
+  # niche breadth:
+  nb <- read.csv(file = file.path(data_dir, "EBBA_niche_breadth.csv"))
+  
+  
   # load analyses results (output of 4_EBBA_niche_shift_analysis.R and 4_EBBA_range_shift_analysis.R)
   if(env_background_species_specific){
     niche_results <- read.csv(file = file.path(data_dir, "niche_shift_results_env_species_spec_change.csv"))
@@ -81,12 +85,16 @@ if(dataset == "EBBA"){
   res_traits_df <- avonet %>% 
     left_join(niche_results, by = c("Species1" = "species")) %>% 
     left_join(range_results, by = c("Species1" = "species"), suffix = c("_niche", "_range")) %>% 
+    left_join(nb, by = c("Species1" = "species")) %>% 
     mutate(diff_range_niche_D = D_range - D_niche)
   # missing data for 6 species!
   
 } else {
   
   avonet <- read.csv(file = file.path(data_dir, "AVONET_BBS_species.csv"))
+  
+  # niche breadth:
+  nb <- read.csv(file = file.path(data_dir, "BBS_niche_breadth.csv"))
   
   # load analyses results (output of 4_BBS_niche_shift_analysis.R and 4_BBS_range_shift_analysis.R)
   if(env_background_species_specific){
@@ -101,13 +109,14 @@ if(dataset == "EBBA"){
   res_traits_df <- avonet %>% 
     left_join(niche_results, by = c("BBS_species" = "species")) %>% 
     left_join(range_results, by = c("BBS_species" = "species"), suffix = c("_niche", "_range")) %>% 
+    left_join(nb, by = c("BBS_species" = "species")) %>% 
     mutate(diff_range_niche_D = D_range - D_niche)
 }
 
 
 # explorative plots:------------------------------------------------------------
 
-# Niche overlap ~ range overlap:
+## Niche overlap ~ range overlap:
 
 scatterplot_fun(data = res_traits_df, x = D_niche, y = D_range,
                 ylab = "range overlap D", xlab = "niche overlap D",
@@ -118,7 +127,51 @@ cor.test(res_traits_df$D_niche, res_traits_df$D_range, alternative = "two.sided"
 # niche D and range D correlated!
 
 
-# Niche and range overlap (D) ~ 
+## Niche breadth: ----
+
+# range overlap:
+scatterplot_fun(data = res_traits_df, x = niche_breadth_zcor, y = D_range,
+                ylab = "range overlap D", xlab = "Niche breadth",
+                title = paste0(dataset, ", background = buffer"), 
+                filename = "range_D~Niche breadth.pdf",
+                width = 8, height = 5)
+# niche overlap:
+scatterplot_fun(data = res_traits_df, x = niche_breadth_zcor, y = D_niche,
+                ylab = "niche overlap D", xlab = "Niche breadth",
+                title = paste0(dataset, ", background = buffer"), 
+                filename = "niche_D~Niche breadth.pdf",
+                width = 8, height = 5)
+
+# niche expansion:
+scatterplot_fun(data = res_traits_df, x = niche_breadth_zcor, y = niche_expansion_std,
+                ylab = "niche E", ylim = c(0, 0.2), xlab = "Niche breadth",
+                title = paste0(dataset, ", background = buffer"), filename = "niche_E~Niche breadth.pdf",
+                width = 8)
+# range expansion:
+scatterplot_fun(data = res_traits_df, x = niche_breadth_zcor, y = range_expansion_std,
+                ylab = "range E", ylim = c(0, 0.2), xlab = "Niche breadth",
+                title = paste0(dataset, ", background = buffer"), filename = "range_E~Niche breadth.pdf")
+
+# niche unfilling:
+scatterplot_fun(data = res_traits_df, x = niche_breadth_zcor, y = niche_unfilling_std,
+                ylab = "niche U", ylim = c(0, 0.2), xlab = "Niche breadth",
+                title = paste0(dataset, ", background = buffer"), filename = "niche_U~Niche breadth.pdf",
+                width = 8)
+# range unfilling:
+scatterplot_fun(data = res_traits_df, x = niche_breadth_zcor, y = range_unfilling_std,
+                ylab = "range U", ylim = c(0, 0.2), xlab = "Niche breadth",
+                title = paste0(dataset, ", background = buffer"), filename = "range_U~Niche breadth.pdf")
+
+# niche stability:
+scatterplot_fun(data = res_traits_df, x = niche_breadth_zcor, y = niche_stability_std,
+                ylab = "niche S", ylim = c(0, 1), xlab = "Niche breadth",
+                title = paste0(dataset, ", background = buffer"), filename = "niche_S~Niche breadth.pdf",
+                width = 8)
+# range stability:
+scatterplot_fun(data = res_traits_df, x = niche_breadth_zcor, y = range_stability_std,
+                ylab = "range S", ylim = c(0, 1), xlab = "Niche breadth",
+                title = paste0(dataset, ", background = buffer"), filename = "range_S~Niche breadth.pdf")
+
 
 ## Trophic level:----
 
@@ -338,6 +391,7 @@ scatterplot_fun(data = res_traits_df, x = Range.Size, y = range_stability_std,
                 filename = "range_S~range_size.pdf",
                 width = 8, height = 5)
 
+## Others: ----
 ## Trophic niche:
 
 boxplot_fun(data = res_traits_df, x = Trophic.Niche, y = D_range,
