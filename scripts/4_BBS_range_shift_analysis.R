@@ -1,6 +1,6 @@
 # BBS range overlap between time periods: 
 
-# similar to niche analysis, but instead of considering two dimensional PCA space derived from climatic conditions,
+# as niche analysis, but instead of considering two dimensional PCA space derived from climatic conditions,
 # analysis is conducted in geographic space (axes = X and Y coordinates instead of PC1 and PC2)
 
 # note: 
@@ -12,6 +12,7 @@
 # - central range coordinate of historic and recent time period (centroid)
 # - Euclidian distance between range centroids of historic and recent time period
 # - north-south shift and east-west shift
+# - direction of range shift (degree)
 # - size of historic and recent range (number of cells)
 # - range overlap (Schoener's D)
 # - results of range shift tests
@@ -31,79 +32,51 @@ library(ade4)
 #            Set-up:          ####
 # ------------------------------ #
 
-# settings:
-
-# environmental background: use presences and absences within 600 km buffer around presences or all true absences within conterminous US:
-env_background_contUS <- FALSE # set to FALSE to use presences and absences within 600 km buffer around presences
+# environmental background: presences and absences within 600 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
+bg_spec <- FALSE
 
 # which historic time period should be used:
-hist_years <- 1980:1983 # maximum gap between historic and recent time period
-#hist_years <- 1995:1998 # similar gap between historic and recent time period as in EBBA analysis
+#hist_years <- 1980:1983 # maximum gap between historic and recent time period
+hist_years <- 1995:1998 # similar gap between historic and recent time period as in EBBA analysis
 
 # paths to data:
 
 # project data:
-#data_dir <- file.path("Data")
+#data_dir <- file.path("data", "BBS_analysis")
 data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
 
-# files to store outputs: 
+#plots_dir <- "plots"
+plots_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts", "plots")
 
 # folder for range dynamics plots:
-if(env_background_contUS){
-  plots_dir <- file.path(data_dir, "plots", paste0("BBS_range_dyn_env_contUS_hist", min(hist_years), "_", max(hist_years)))
-} else {
-  plots_dir <- file.path(data_dir, "plots", paste0("BBS_range_dyn_env_600km_hist", min(hist_years), "_", max(hist_years)))
-}
-if(!dir.exists(plots_dir)){
-  dir.create(plots_dir, recursive = TRUE)
-}
+plots_dir <- file.path(plots_dir, "range_dynamics_species", paste0("BBS_range_dyn_bg_", ifelse(bg_spec, "spec", "US"), "_hist", 
+                                                                   ifelse(all(hist_years == 1980:1983), "81-83", "96-98")))
+if(!dir.exists(plots_dir)){dir.create(plots_dir, recursive = TRUE)}
 
-# output files:
-if(env_background_contUS){
-  results_file <- file.path(data_dir, paste0("BBS_range_shift_results_env_contUS_hist", min(hist_years), "_", max(hist_years), ".csv"))
-} else {
-  results_file <- file.path(data_dir, paste0("BBS_range_shift_results_env_600km_hist", min(hist_years), "_", max(hist_years), ".csv"))
-}
+# results table:
+results_file <- file.path(data_dir, paste0("BBS_range_shift_results_bg_", ifelse(bg_spec, "spec", "US"),  "_hist",
+                                           ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".csv"))
 
 # ---------------------------- #
 #          Load data:       ####
 # ---------------------------- #
 
 # species selection: 
-sel_species <- read.csv(file = file.path(data_dir, "species_stability_contUS_BL22_120423.csv")) %>% 
-  arrange(-stability) %>% 
+sel_species <- read.csv(file = file.path(data_dir, "species_stability_contUS_BL22.csv")) %>% 
   filter(stability >= 0.5) %>% 
   pull(species) %>% 
-  sort
+  sort # 297
 
 # BBS data, only selected species:
-if(all(hist_years == 1980:1983)){
-  
-  # which species for 1980:1983:
-  load(file = file.path(data_dir, "BBS_prep_steps1-4_V1.RData")) # output of 2_1_BBS_species_filtering_1-4.R
-  species_filtered_V1 <- sort(unique(hist_prep_df$species))
-  sel_species_final <- species_filtered_V1[which(species_filtered_V1 %in% sel_species)] # 207
-  
-  BBS_hist <- read_sf(file.path(data_dir, "BBS_historic1_proj_centroids.shp")) %>% 
-    filter(species %in% sel_species_final)
-  
-  BBS_rec <- read_sf(file.path(data_dir, "BBS_recent1_proj_centroids.shp")) %>% 
-    filter(species %in% sel_species_final)
-}
+load(file = file.path(data_dir, paste0("BBS_prep_steps1-4_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".RData"))) # output of 2_1_BBS_species_filtering_1-4.R
+species_filtered <- sort(unique(hist_prep_df$species))
+sel_species_final <- species_filtered[which(species_filtered %in% sel_species)] # 296
 
-if(all(hist_years == 1995:1998)){
-  
-  # which species for V2:
-  load(file = file.path(data_dir, "BBS_prep_steps1-4_V2.RData")) # output of 2_1_BBS_species_filtering_1-4.R
-  species_filtered_V2 <- sort(unique(hist_prep_df$species))
-  sel_species_final <- species_filtered_V2[which(species_filtered_V2 %in% sel_species)] # 296
-  
-  BBS_hist <- read_sf(file.path(data_dir, "BBS_historic2_proj_centroids.shp")) %>% 
-    filter(species %in% sel_species_final)
-  
-  BBS_rec <- read_sf(file.path(data_dir, "BBS_recent2_proj_centroids.shp")) %>% 
-    filter(species %in% sel_species_final)
-}
+BBS_hist <- read_sf(file.path(data_dir, paste0("BBS_historic_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".shp"))) %>% # output of 1_BBS_prep_data.R
+  filter(species %in% sel_species_final)
+
+BBS_rec <- read_sf(file.path(data_dir, paste0("BBS_recent_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".shp"))) %>% # output of 1_BBS_prep_data.R
+  filter(species %in% sel_species_final)
 
 
 # ------------------------------------------------ #
@@ -116,12 +89,12 @@ range_shift_df <- data.frame("species" = sel_species_final,
                              "centroid_hist_Y" = NA,
                              "centroid_rec_X" = NA,
                              "centroid_rec_Y" = NA,
-                             "centroid_dist" = NA,
-                             "centroid_NS_shift" = NA, # north-south shift
-                             "centroid_EW_shift" = NA, # east-west shift
+                             "Eucl_distance" = NA,
+                             "NS_shift" = NA, # north-south shift
+                             "EW_shift" = NA, # east-west shift
+                             "shift_direction" = NA, # direction of range shift (degree)
                              "n_routes_hist" = NA,
-                             "n_routes_rec" = NA
-)
+                             "n_routes_rec" = NA)
 
 # central range coordinate historic time of each species:
 centroids_hist_sf <- BBS_hist %>%
@@ -146,13 +119,33 @@ centroids_rec_sf <- BBS_rec %>%
 range_shift_df[, c("centroid_rec_X", "centroid_rec_Y")] <- st_coordinates(centroids_rec_sf)
 
 # Euclidian distance between range centroids of historic and recent time period:
-range_shift_df$centroid_dist <- st_distance(centroids_hist_sf, centroids_rec_sf, by_element = TRUE) 
+range_shift_df$Eucl_distance <- st_distance(centroids_hist_sf, centroids_rec_sf, by_element = TRUE) 
 
 # north-south shift:
-range_shift_df$centroid_NS_shift <- units::set_units(range_shift_df$centroid_rec_Y - range_shift_df$centroid_hist_Y, "m") # positive values = north shift, negative values = south shift
+range_shift_df$NS_shift <- units::set_units(range_shift_df$centroid_rec_Y - range_shift_df$centroid_hist_Y, "m") # positive values = north shift, negative values = south shift
 
 # east-west shift:
-range_shift_df$centroid_EW_shift <- units::set_units(range_shift_df$centroid_rec_X - range_shift_df$centroid_hist_X, "m") # positive values = east shift, negative values = west shift
+range_shift_df$EW_shift <- units::set_units(range_shift_df$centroid_rec_X - range_shift_df$centroid_hist_X, "m") # positive values = east shift, negative values = west shift
+
+# direction of range shift:
+
+## historic range centroids:
+hist_centroids <- range_shift_df[, c("species", "centroid_hist_X", "centroid_hist_Y")] %>% 
+  st_as_sf(coords = c("centroid_hist_X", "centroid_hist_Y"),
+           crs = "ESRI:102003") %>% 
+  st_transform(crs = 4326) %>% # transform and convert to SpatialPoints to calculate bearing
+  as_Spatial()
+
+## recent range centroids:
+rec_centroids <- range_shift_df[, c("species", "centroid_rec_X", "centroid_rec_Y")] %>% 
+  st_as_sf(coords = c("centroid_rec_X","centroid_rec_Y"),
+           crs = "ESRI:102003") %>% 
+  st_transform(crs = 4326) %>% 
+  as_Spatial()
+
+## direction of shift:
+range_shift_df$shift_direction <- units::set_units(geosphere::bearing(p1 = hist_centroids, p2 = rec_centroids), "degree")
+
 
 # number of routes with presences of historic range:
 range_shift_df$n_routes_hist <- BBS_hist %>% 
@@ -190,10 +183,10 @@ NA_mask <- spData::world %>%
 # loop over species:----
 
 # register cores for parallel computation:
-registerDoParallel(cores = 2)
+registerDoParallel(cores = 15)
 #getDoParWorkers() # check registered number of cores
 
-range_ecospat_df <- foreach(s = 1:2,#length(sel_species_final),
+range_ecospat_df <- foreach(s = 1:length(sel_species_final),
                             .combine = rbind,
                             .packages = c("ecospat", "ade4", "dplyr", "sf"),
                             .verbose = TRUE,
@@ -225,12 +218,12 @@ range_ecospat_df <- foreach(s = 1:2,#length(sel_species_final),
                                                             "cons_p_S_A" = NA,
                                                             "cons_p_U_A" = NA,
                                                             # range dynamic metrics:
-                                                            "range_stability_NA" = NA,
-                                                            "range_expansion_NA" = NA,
-                                                            "range_unfilling_NA" = NA,
-                                                            "range_stability_A" = NA,
-                                                            "range_expansion_A" = NA,
-                                                            "range_unfilling_A" = NA)
+                                                            "rS_NA" = NA,
+                                                            "rE_NA" = NA,
+                                                            "rU_NA" = NA,
+                                                            "rS_A" = NA,
+                                                            "rE_A" = NA,
+                                                            "rU_A" = NA)
                               
                               ## coordinates of presence / absence points: -----
                               
@@ -241,7 +234,7 @@ range_ecospat_df <- foreach(s = 1:2,#length(sel_species_final),
                                 st_coordinates %>% 
                                 as.data.frame
                               
-                              if(!env_background_contUS){
+                              if(bg_spec){
                                 
                                 # environmental background = all presences and true absences within 600 km of presences (Sofaer et al. 2018)
                                 
@@ -275,7 +268,7 @@ range_ecospat_df <- foreach(s = 1:2,#length(sel_species_final),
                                 st_coordinates %>% 
                                 as.data.frame
                               
-                              if(!env_background_contUS){
+                              if(bg_spec){
                                 
                                 # environmental background = all presences and true absences within 600 km of presences (Sofaer et al. 2018)
                                 
@@ -426,18 +419,18 @@ range_ecospat_df <- foreach(s = 1:2,#length(sel_species_final),
                                                                       grid.range.rec,
                                                                       intersection = NA) # analysis performed on both ranges of EBBA1 and EBBA2
                               
-                              range_ecospat_s$range_stability_NA <- range_dyn_NA$dynamic.index.w['stability']
-                              range_ecospat_s$range_expansion_NA <- range_dyn_NA$dynamic.index.w['expansion']
-                              range_ecospat_s$range_unfilling_NA <- range_dyn_NA$dynamic.index.w['unfilling']
+                              range_ecospat_s$rS_NA <- range_dyn_NA$dynamic.index.w['stability']
+                              range_ecospat_s$rE_NA <- range_dyn_NA$dynamic.index.w['expansion']
+                              range_ecospat_s$rU_NA <- range_dyn_NA$dynamic.index.w['unfilling']
                               
                               # analogue conditions:
                               range_dyn_A <- ecospat.niche.dyn.index(grid.range.hist, 
                                                                      grid.range.rec,
                                                                      intersection = 0) # analysis performed on intersection of ranges of EBBA1 and EBBA2
                               
-                              range_ecospat_s$range_stability_A <- range_dyn_A$dynamic.index.w['stability']
-                              range_ecospat_s$range_expansion_A <- range_dyn_A$dynamic.index.w['expansion']
-                              range_ecospat_s$range_unfilling_A <- range_dyn_A$dynamic.index.w['unfilling']
+                              range_ecospat_s$rS_A <- range_dyn_A$dynamic.index.w['stability']
+                              range_ecospat_s$rE_A <- range_dyn_A$dynamic.index.w['expansion']
+                              range_ecospat_s$rU_A <- range_dyn_A$dynamic.index.w['unfilling']
                               
                               # save plot of range dynamics:
                               jpeg(filename = file.path(plots_dir, paste0(spec, ".jpg")),
@@ -448,9 +441,9 @@ range_ecospat_df <- foreach(s = 1:2,#length(sel_species_final),
                                                      quant = 0.05,
                                                      interest = 2, # 1 = historic density, 2 = recent density
                                                      title = paste(spec,":",
-                                                                   "stability:", round(range_ecospat_s$range_stability_NA,3),
-                                                                   "expansion:", round(range_ecospat_s$range_expansion_NA,3),
-                                                                   "unfiling:", round(range_ecospat_s$range_unfilling_NA,3)),
+                                                                   "stability:", round(range_ecospat_s$rS_NA,3),
+                                                                   "expansion:", round(range_ecospat_s$rE_NA,3),
+                                                                   "unfiling:", round(range_ecospat_s$rU_NA,3)),
                                                      name.axis1 = "X",
                                                      name.axis2 = "Y")
                               dev.off()
@@ -465,9 +458,9 @@ range_ecospat_df <- foreach(s = 1:2,#length(sel_species_final),
 ## standardise range dynamic metrics: ------------------------------------------
 
 # non-analogue area (= accessible area in either EBBA1 or EBBA2):
-e <- range_ecospat_df$range_expansion_NA # expansion related to whole accessible EBBA area (EBBA1 or EBBA2)
-s <- range_ecospat_df$range_stability_NA # stability related to whole accessible EBBA area (EBBA1 or EBBA2)
-u <- range_ecospat_df$range_unfilling_NA # unfilling related to whole accessible EBBA area (EBBA1 or EBBA2)
+e <- range_ecospat_df$rE_NA # expansion related to whole accessible EBBA area (EBBA1 or EBBA2)
+s <- range_ecospat_df$rS_NA # stability related to whole accessible EBBA area (EBBA1 or EBBA2)
+u <- range_ecospat_df$rU_NA # unfilling related to whole accessible EBBA area (EBBA1 or EBBA2)
 
 # stability, non-analogue conditions, related to EBBA1 accessible area:
 s_x <- 1 - u

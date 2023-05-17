@@ -1,10 +1,8 @@
-# Filter species to use in analysis, preparation for step 5: 
-
-# (Step 5: Exclude species whose climatic niche is not well covered in Europe.
-# To assess the climatic niche a species uses throughout its range we use Chelsa data.)
-
-# in this script, Chelsa data of EBBA2 period (2009-2018) are projected to a global equal area projection (Interrupted Goode Homolosine)
+# Chelsa data of EBBA2 period (2009-2018) are projected to a global equal area projection (Interrupted Goode Homolosine)
 # EBBA2 period used to match current Birdlife range data (released 2022)
+
+# (preparation for filtering step 5: Exclude species whose climatic niche is not well covered in Europe.
+# To assess the climatic niche a species uses throughout its range we use Chelsa data.)
 
 # notes:
 # - this script was run from the cluster, file paths may need to be updated

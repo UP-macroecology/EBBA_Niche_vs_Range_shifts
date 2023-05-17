@@ -1,12 +1,11 @@
 # Filter BBS species to use in analysis, step 5: 
-
-# Step 5: Exclude species whose climatic niche is not well covered in the conterminous US:
-# We compare the global Birdlife range and the part of these range covered by the conterminous US.
+# Exclude species whose climatic niche is not well covered in the conterminous US:
+# We compare the global Birdlife range and the part of the range covered by the conterminous US.
 # To assess the climatic niche we use Chelsa data.
 
 # notes:
 # - parts of the script (extracting shapefiles and masking Chelsa data) were run from the cluster, file paths may need to be updated
-# - did not run everything on the cluster because there were errors that did not occur on my laptop -> package versions? need to check whether they still occur xx
+# - did not run everything on the cluster because there were errors that did not occur on my laptop -> package versions?
 # - ecospat dependencies ‘biomod2’, ‘randomForest’ depend on R >= 4.1.0
 # -> before running on the cluster run "module load R/4.1.0-foss-2021a" on ecoc9 to ensure that R version 4.1.0 (2021-05-18) is used
 
@@ -27,9 +26,9 @@ library(dismo) # requires spatial data formats of raster package
 
 # project data:
 #data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
-data_dir <- file.path("Data")
+data_dir <- file.path("data", "BBS_analysis")
 
-# Bird life range maps:
+# Birdlife range maps:
 #datashare_Birdlife <- file.path("/mnt", "ibb_share", "zurell", "biodat", "distribution", "Birdlife", "BOTW_2022")
 datashare_Birdlife <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data", "biodat", "distribution", "Birdlife", "BOTW_2022")
 
@@ -37,24 +36,23 @@ datashare_Birdlife <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26
 #datashare_Chelsa <- file.path("/mnt", "ibb_share", "zurell", "envidat", "biophysical", "CHELSA_V2", "global") 
 datashare_Chelsa <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data","envidat","biophysical","CHELSA_V2","global") 
 
-# folder where projected CHELSA data are stored:
-#chelsa_birdlife_path <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA")
-chelsa_birdlife_path <- file.path(data_dir, "Chelsa")
+# folder with projected CHELSA data (output of 2_2_species_filtering_5_project_Chelsa.R):
+chelsa_proj_path <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA")
 
 # output folder for niche dynamics plots Birdlife range vs. conterminous US area:
-US_BL_plot_dir <- file.path(data_dir, "plots", "contUS_BL22_niche_dyn")
+#US_BL_plot_dir <- file.path(data_dir, "plots", "contUS_vs_BL_niche_dyn")
+US_BL_plot_dir <- file.path("plots", "coverage_climatic_niche", "contUS_vs_BL_niche_dyn")
 if(!dir.exists(US_BL_plot_dir)){dir.create(US_BL_plot_dir, recursive = TRUE)}
 
-# register cores for parallel computation:
-#registerDoParallel(cores = 2)
-
 # load species left after filter steps 1-4, for both versions of historic time period:
-load(file = file.path(data_dir, "BBS_prep_steps1-4_V1.RData")) # output of 2_1_BBS_species_filtering_1-4.R
-species_filtered_V1 <- sort(sub(" ", "_", unique(hist_prep_df$species)))
-load(file = file.path(data_dir, "BBS_prep_steps1-4_V2.RData")) # output of 2_1_BBS_species_filtering_1-4.R
-species_filtered_V2 <- sort(sub(" ", "_", unique(hist_prep_df$species)))
-species_filtered <- sort(unique(c(species_filtered_V1, species_filtered_V2)))
+load(file = file.path(data_dir, "BBS_prep_steps1-4_hist81-83.RData")) # output of 2_1_BBS_species_filtering_1-4.R
+species_filtered_V1 <- sort(sub(" ", "_", unique(hist_prep_df$species))) # 212
+load(file = file.path(data_dir, "BBS_prep_steps1-4_hist96-98.RData")) # output of 2_1_BBS_species_filtering_1-4.R
+species_filtered_V2 <- sort(sub(" ", "_", unique(hist_prep_df$species))) # 312
+species_filtered <- sort(unique(c(species_filtered_V1, species_filtered_V2))) # 313
 
+# register cores for parallel computation:
+registerDoParallel(cores = 2)
 
 # ------------------------------------------------------- #
 #    1. Create mask to extract relevant Chelsa data:   ####
@@ -62,7 +60,6 @@ species_filtered <- sort(unique(c(species_filtered_V1, species_filtered_V2)))
 
 # create mask that covers Birdlife range polygons of all species left after filtering step 4
 # (for species filtering we use same resolution as for EBBA data: 50 km)
-
 
 ## extract shapefiles from Birdlife 2022 geodatabase: --------------------------
 
@@ -193,28 +190,23 @@ ranges <- lapply(BL_range_tifs, rast)
 # in case of fatal R errors while merging all rasters in one step, merge in multiple steps:
 ranges_combined1 <- do.call(terra::merge, ranges[1:200]) %>% 
   buffer(width = 100000) %>% # Warning: "[merge] rasters did not align and were resampled" -> fine, aligns ranges of different species
-  resample(y = rast(file.path(data_dir, "CHELSA_pr_01_1981_V.2.1_50km.tif")), # projected Chelsa raster as template, output of 2_2_species_filtering_5_project_Chelsa.R
+  resample(y = rast(file.path(data_dir, "Chelsa", "CHELSA_tasmin_11_2014_V.2.1_50km.tif")), # projected Chelsa raster as template, output of 2_2_species_filtering_5_project_Chelsa.R
            method = "near") # 
 ranges_combined2 <- do.call(terra::merge, ranges[201:312]) %>% 
   buffer(width = 100000) %>%
-  resample(y = rast(file.path(data_dir, "CHELSA_pr_01_1981_V.2.1_50km.tif")),
+  resample(y = rast(file.path(data_dir, "Chelsa", "CHELSA_tasmin_11_2014_V.2.1_50km.tif")),
            method = "near")
 ranges_combined <- do.call(terra::merge, list(ranges_combined1,ranges_combined2))
 
 # save mask:
 writeRaster(ranges_combined, 
-            filename = file.path(data_dir, "Birdlife_ranges_mask_BBS_050423.tif"),
-            overwrite = TRUE,
-            NAflag = FALSE)
+            filename = file.path(data_dir, "BBS_Birdlife_ranges_mask.tif"),
+            overwrite = TRUE, NAflag = FALSE)
 
 
 ## exploration: compare BBS records with range maps from Birdlife: -------------
 
-library("rnaturalearth")
-library("rnaturalearthdata")
-library(ggplot2)
-
-world <- ne_countries(scale = "small", returnclass = "sf")
+world <- rnaturalearth::ne_countries(scale = "small", returnclass = "sf")
 
 # for which species should range be plotted:
 spec = 1
@@ -223,14 +215,14 @@ spec = 1
 BL_range_sf <- read_sf(BL_range_shps[grep(BL_range_shps, pattern = species_filtered[spec])])
 
 # BBS records historic period:
-BBS_spec_occ <- st_read(file.path(data_dir, "BBS_historic1.shp")) %>%  # output of 1_prep_BBS_data.R
+BBS_spec_occ <- st_read(file.path(data_dir, "BBS_historic_centr_proj_hist81-83.shp")) %>%  # output of 1_BBS_prep_data.R
   filter(species == sub("_", " ", species_filtered[spec]) & pres == 1)
 
-ggplot(world) +
-  geom_sf(color = "gray50") +
-  geom_sf(data = st_transform(BL_range_sf, crs = st_crs(world)), fill = "red", alpha = 0.5) +
-  geom_sf(data = st_transform(BBS_spec_occ, crs = st_crs(world)), colour = "blue") +
-  ggtitle(sub("_", " ", species_filtered[spec]))
+ggplot2::ggplot(world) +
+  ggplot2::geom_sf(color = "gray50") +
+  ggplot2::geom_sf(data = st_transform(BL_range_sf, crs = st_crs(world)), fill = "red", alpha = 0.5) +
+  ggplot2::geom_sf(data = st_transform(BBS_spec_occ, crs = st_crs(world)), colour = "blue") +
+  ggplot2::ggtitle(sub("_", " ", species_filtered[spec]))
 
 
 # ------------------------------- #
@@ -242,10 +234,10 @@ chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE,
                           pattern = paste0("(", paste(2016:2018, collapse = "|"), ")_V.2.1.tif"))
 
 # projected Chelsa files:
-names_proj <- list.files(file.path(chelsa_birdlife_path, "Chelsa_projected"), full.names = TRUE)
+names_proj <- list.files(file.path(chelsa_proj_path, "Chelsa_projected"), full.names = TRUE)
 
 # folder to store masked Chelsa data:
-chelsa_masked_path <- file.path(chelsa_birdlife_path, "Chelsa_masked_global_BBS")
+chelsa_masked_path <- file.path(data_dir, "Chelsa", "Chelsa_masked_global")
 # create folder if it doesn't exist yet:
 if(!dir.exists(chelsa_masked_path)){dir.create(chelsa_masked_path, recursive = TRUE)}
 
@@ -254,7 +246,7 @@ names_masked <- file.path(chelsa_masked_path,
                           paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "\\.tif")})), "_50km_masked.tif"))
 
 # load mask:
-ranges_mask <- rast(file.path(data_dir, "Birdlife_ranges_mask_BBS_050423.tif"))
+ranges_mask <- rast(file.path(data_dir, "BBS_Birdlife_ranges_mask.tif"))
 
 # mask projected rasters:
 for(i in 1:length(chelsa_tifs)){
@@ -268,9 +260,9 @@ for(i in 1:length(chelsa_tifs)){
 }
 
 
-# ----------------------------------------------------------- #
-#     3. Calculate bioclim variables from Chelsa data:     ####
-# ----------------------------------------------------------- #
+# --------------------------------------------------------------- #
+#     3. Calculate bioclimatic variables from Chelsa data:     ####
+# --------------------------------------------------------------- #
 
 vars <- c("pr", "tas", "tasmin", "tasmax")
 months <- stringr::str_pad(1:12, width = 2, pad = "0")
@@ -280,9 +272,9 @@ years <- 2016:2018
 chelsa_masked_files <- list.files(chelsa_masked_path, pattern = "tif$", full.names = TRUE)
 
 # load mask using raster package, this is required by dismo::biovars())
-ranges_mask <- raster(file.path(data_dir, "Birdlife_ranges_mask_BBS_050423.tif"))
+ranges_mask <- raster(file.path(data_dir, "BBS_Birdlife_ranges_mask.tif"))
 
-# spatial brick template, bricks to store the month-wise means across the selected years for each bioclim variable:
+# spatial brick template, bricks to store the month-wise means across the selected years for each bioclimatic variable:
 out <- brick(ranges_mask, values = FALSE)
 pr_mean <- tasmin_mean <- tasmax_mean <- out
 
@@ -317,8 +309,7 @@ biovars <- dismo::biovars(prec = pr_mean,
 biovars_rast <- rast(biovars) # convert to terra object
 
 # save tifs:
-# create folder if it doesn't exist yet:
-bioclim_folder <- file.path(data_dir, paste0("Bioclim_raster_BBS_", min(years), "_", max(years)))
+bioclim_folder <- file.path(data_dir, paste0("Bioclim_global_", min(years), "_", max(years)))
 if(!dir.exists(bioclim_folder)){dir.create(bioclim_folder, recursive = TRUE)}
 
 writeRaster(biovars_rast,
@@ -360,7 +351,6 @@ contUS_rast_poly <- rast(file.path(data_dir, "contUS_50km.tif")) %>%
   as.polygons %>% 
   st_as_sf
 
-
 # files of rasterized and projected Birdlife ranges:
 BL_range_tifs
 
@@ -389,7 +379,7 @@ stability_df <- foreach(i = 1:length(species_filtered),
                           # add bioclim variables:
                           BL_vars_df <- cbind(data.frame(species = sub("_", " ", species_filtered[i])),
                                                    terra::extract(biovars_rast, BL_pts)) %>% 
-                            filter(complete.cases(.)) # in (few) cases where occurrence points are "on the edge of the globe" so no Chelsa data are available
+                            filter(complete.cases(.)) # in (few) cases where occurrence points may be "on the edge of the globe" so no Chelsa data are available
                           
                           # Birdlife cell centroids within the conterminous US:
                           contUS_pts <- BL_pts %>% 
@@ -418,13 +408,13 @@ stability_df <- foreach(i = 1:length(species_filtered),
                           # cont. US distribution area:
                           grid.clim.contUS <- ecospat.grid.clim.dyn(glob = scores.globclim,
                                                                   glob1 = scores.clim.contUS, 
-                                                                  sp = scores.clim.contUS, # same for background and occurrences, should be fine for our purpose
+                                                                  sp = scores.clim.contUS,
                                                                   R = 100, # grid resolution
                                                                   th.sp = 0)
                           # Birdlife range area:
                           grid.clim.BL <- ecospat.grid.clim.dyn(glob = scores.globclim,
                                                                 glob1 = scores.clim.BL, 
-                                                                sp = scores.clim.BL, # same for background and occurrences, should be fine for our purpose
+                                                                sp = scores.clim.BL,
                                                                 R = 100, 
                                                                 th.sp = 0)
 
@@ -458,17 +448,16 @@ stability_df <- foreach(i = 1:length(species_filtered),
                         }
 
 stability_df %>% 
-  arrange(-stability) %>%  View # 309 species
+  arrange(-stability) # 309 species
 # 4 missing species:
-# Anas_crecca: no Birdlife distribution data for 
+# Anas_crecca: BL range does not cover conterminous US 
 # Cistothorus_platensis: BL range does not cover conterminous US
 # Columba_livia: BL range does not cover conterminous US
 # Passerella_iliaca: BL breeding range does not cover conterminous US
 
-
 # save species stability values :
 write.csv(stability_df, 
-          file = file.path(data_dir, "species_stability_contUS_BL22_120423.csv"),
+          file = file.path(data_dir, "species_stability_contUS_BL22.csv"),
           row.names = FALSE)
 
 # plots regarding stability:

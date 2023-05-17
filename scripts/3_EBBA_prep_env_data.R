@@ -1,6 +1,7 @@
-# Environmental data used for niche analysis:
+# Bioclimatic variables used for niche analysis:
 
 # notes:
+# - run from cluster
 # - before running the script run "module load R/4.1.0-foss-2021a" on ecoc9 to ensure that R version 4.1.0 (2021-05-18) and GDAL 3.3.0 are used
 
 library(gdalUtilities)
@@ -10,29 +11,31 @@ library(dplyr)
 library(raster)
 library(stringr)
 
-# -------------------------------- #
-#       Climate data:           ####
-# -------------------------------- #
+# ------------------------ #
+#       Set-up:         ####
+# ------------------------ #
 
 # file paths:
 datashare_EBCC <- file.path("/mnt","ibb_share","zurell", "biodat", "distribution", "EBCC")
 datashare_Chelsa <- file.path("/mnt","ibb_share","zurell","envidat","biophysical","CHELSA_V2","global") 
 
+# folder to store reprojected Chelsa data:
+chelsa_EPSG3035 <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "Chelsa_EPSG3035")
+if(!dir.exists(chelsa_EPSG3035)){dir.create(chelsa_EPSG3035, recursive = TRUE)}
 
-# 1) project Chelsa data of EBBA 2 area: ---------------------------------------
+# register cores for parallel computation:
+registerDoParallel(cores = 8)
+getDoParWorkers() # check registered number of cores
+
+# ----------------------------------------- #
+#   Project Chelsa data of EBBA 2 area:  ####
+# ----------------------------------------- #
 
 # Lambert azimuthal equal-area projection (ETRS89-extended / LAEA Europe, EPSG:3035)
 # historic (1981-1990) and recent time period (2009-2018)
 
 chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE, 
                           pattern = paste0("(", paste(c(1981:1990, 2009:2018), collapse = "|"), ")_V.2.1.tif")) # 960
-
-# folder to store reprojected Chelsa data:
-chelsa_EPSG3035 <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "Chelsa_EPSG3035")
-# create folder if it doesn't exist yet:
-if(!dir.exists(chelsa_EPSG3035)){
-  dir.create(chelsa_EPSG3035, recursive = TRUE)
-}
 
 # names for reprojected Chelsa files:
 names <- paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "\\.tif")})), "_EPSG3035_50km.tif")
@@ -41,7 +44,7 @@ names <- paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "\\.ti
 lambert_projection <- "EPSG:3035"
 
 
-## Create a mask: ----
+## create a mask: ----
 
 # to create the mask, I use the EBBA 2 spatial grid and not only the cells that can be compared across EBBA 1 and EBBA 2
 # to avoid holes resulting from non-comparable cells
@@ -58,17 +61,14 @@ EBBA_mask <- rast(file.path("/import", "ecoc9z", "data-zurell", "schifferle", "C
 mask_ext <- ext(EBBA_mask)
 
 
-## Project downloaded Chelsa layers: ----
+## project Chelsa layers: ----
 
-# register cores for parallel computation:
-registerDoParallel(cores = 8)
-getDoParWorkers() # check registered number of cores
-
-foreach(s = 1:length(chelsa_tifs), .packages = c("gdalUtilities") , .verbose = TRUE) %dopar% {
+foreach(s = 1:length(chelsa_tifs), 
+        .packages = c("gdalUtilities") , 
+        .verbose = TRUE) %dopar% {
   
   # reproject Chelsa data:
-  gdalUtilities::gdalwarp(srcfile = file.path(datashare_Chelsa, 
-                                              chelsa_tifs[s]),
+  gdalUtilities::gdalwarp(srcfile = file.path(datashare_Chelsa, chelsa_tifs[s]),
                           dstfile = file.path(chelsa_EPSG3035, names[s]),
                           overwrite = TRUE,
                           tr = c(50000, 50000), # target resolution
@@ -83,7 +83,9 @@ foreach(s = 1:length(chelsa_tifs), .packages = c("gdalUtilities") , .verbose = T
 } 
 
 
-# 2) Calculate bioclimatic variables: ------------------------------------------
+# ----------------------------------------- #
+#   Calculate bioclimatic variables:     ####
+# ----------------------------------------- #
 
 # once for historic period (1981-1990), once for recent period (2009-2018)
 
@@ -95,12 +97,10 @@ EBBA_mask <- raster(file.path("/import", "ecoc9z", "data-zurell", "schifferle", 
 
 # folder to store bioclim rasters for historic time period:
 bioclim_1981_1990 <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "Bioclim_1981_1990")
-# create folder if it doesn't exist yet:
 if(!dir.exists(bioclim_1981_1990)){dir.create(bioclim_1981_1990, recursive = TRUE)}
 
 # folder to store bioclim rasters for recent time period:
 bioclim_2009_2018 <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "Bioclim_2009_2018")
-# create folder if it doesn't exist yet:
 if(!dir.exists(bioclim_2009_2018)){dir.create(bioclim_2009_2018, recursive = TRUE)} 
 
 
@@ -154,12 +154,11 @@ for(t in 1:2){
                             tmin = tasmin_mean, 
                             tmax = tasmax_mean)
   
-  biovars_rast <- rast(biovars) # convert to terra object
+  biovars_rast <- terra::rast(biovars) # convert to terra object
   
   # save tifs:
-  writeRaster(biovars_rast,
+  terra::writeRaster(biovars_rast,
               filename = file.path(output_folder, 
                                    paste0("CHELSA_", names(biovars), "_", min(years), "_", max(years), "_", "50km.tif")), 
               overwrite = TRUE)
-  
 }

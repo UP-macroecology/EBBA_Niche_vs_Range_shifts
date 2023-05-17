@@ -4,8 +4,14 @@ library(dplyr)
 library(sf)
 
 # -------------------------------------------------- #
-#            Load and explore EBBA data:          ####
+#            Preliminary data preparation:        ####
 # -------------------------------------------------- #
+
+# preliminary = analysis to identify suitable species for which we request EBBA1-EBBA2 change dataset
+# (EBBA1-EBBA2 change dataset used for main niche vs. range shift analysis)
+
+
+## load and explore EBBA data: -------------------------------------------------
 
 # datashare:
 datashare_EBCC <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data", "biodat", "distribution", "EBCC")
@@ -14,12 +20,13 @@ datashare_EBCC <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "
 # (3912 locations in GBIF data -> ?)
 # EBBA2: 5303 grid cells (5079 with data ->?), 596 species (data in csv-file, locations in shapefile)
 
-## EBBA1 data: --------------------------------------
+### EBBA1 data: --------------------------------------
 
 EBBA1 <- read.csv(file.path(datashare_EBCC, "EBBA1", "EBBA1.csv"), sep = "\t", header = TRUE)
 nrow(EBBA1)# 1'339'711
 
-### explorations regarding EBBA 1: ------------------
+
+#### explorations regarding EBBA 1: ------------------
 
 library("rnaturalearth")
 library("rnaturalearthdata")
@@ -128,7 +135,7 @@ EBBA1 %>%
 EBBA1 %>% 
   filter(issue == "TAXON_MATCH_NONE;BASIS_OF_RECORD_INVALID") # 1 entry
 
-### use only EBBA1 presences: ------------------------
+# use only EBBA1 presences:
 
 # EBBA1.csv contains presence AND absence records of each species
 # this information is contained in column "issue"
@@ -139,7 +146,7 @@ EBBA1 <- EBBA1 %>%
 nrow(EBBA1)# 355'488
 
 
-## EBBA2 data: ---------------------------------------
+### EBBA2 data: ---------------------------------------
 
 EBBA2_dt <- read.csv(file.path(datashare_EBCC, "EBBA2", "ebba2_data_occurrence_50km.csv"), sep=";", header=T)
 nrow(EBBA2_dt) # 579'263
@@ -151,9 +158,7 @@ EBBA2_grid <- read_sf(file.path(datashare_EBCC, "EBBA2", "ebba2_grid50x50_v1", "
 nrow(EBBA2_grid) # 5303
 
 
-# -------------------------------------------------- #
-#          Spatial processing of EBBA data:       ####
-# -------------------------------------------------- #
+## spatial processing of EBBA data:---------------------------------------------
 
 # CRS of EBBA2 grid is ETRS89-extended / LAEA Europe (EPSG:3035)
 # EPSG:3035 is used throughout the project
@@ -172,8 +177,6 @@ EBBA2_sf <- st_centroid(EBBA2_grid) %>%
   full_join(EBBA2_dt, by = "cell50x50") %>% 
   rename(species = birdlife_scientific_name) %>% 
   select(-birdlife_code)
-
-nrow(EBBA2_sf) # 579,487 (more because there are 224 cells for which no presence is recorded)
 
 # drop non-comparable cells according to EBBA2 methods chapter:
 
@@ -239,12 +242,11 @@ nrow(EBBA2_sf_country_code) # 579'487
 nrow(EBBA2_clipped_sf) # 365'389
 
 # save:
-st_write(EBBA1_clipped_sf, file.path("Data", "EBBA1_comparable.shp")) # save also before taxonomic harmonization because otherwise 5 EBBA2 cells are dropped that don't contain any record of comparable species
-st_write(EBBA2_clipped_sf, file.path("Data", "EBBA2_comparable.shp"))
+st_write(EBBA1_clipped_sf, file.path("data", "EBBA_analysis", "EBBA1_prelim_comparable_cells.shp")) # save also before taxonomic harmonization because otherwise 5 EBBA2 cells are dropped that don't contain any record of comparable species
+st_write(EBBA2_clipped_sf, file.path("data", "EBBA_analysis", "EBBA2_prelim_comparable_cells.shp"))
 
-# -------------------------------------------------- #
-#            Unify taxonomy between EBBAs:        ####
-# -------------------------------------------------- #
+
+## taxonomic harmonization of EBBAs:--------------------------------------------
 
 # based on EBBA2 methods chapter:
 # "EBBA1 data were attributed, where possible, to the species recognised in EBBA2 (Table 6)"
@@ -309,8 +311,8 @@ length(unique(EBBA1_taxunif_sf$species)) # 445 species left
 length(unique(EBBA2_taxunif_sf$species)) # 517 species left
 
 # save:
-st_write(EBBA1_taxunif_sf, file.path("Data", "EBBA1_comparable_harmonized.shp"))
-st_write(EBBA2_taxunif_sf, file.path("Data", "EBBA2_comparable_harmonized.shp"))
+st_write(EBBA1_taxunif_sf, file.path("data", "EBBA_analysis", "EBBA1_prelim_comparable_harmonized.shp"))
+st_write(EBBA2_taxunif_sf, file.path("data", "EBBA_analysis", "EBBA2_prelim_comparable_harmonized.shp"))
 
 
 # --------------------------------------------- #
@@ -322,13 +324,7 @@ st_write(EBBA2_taxunif_sf, file.path("Data", "EBBA2_comparable_harmonized.shp"))
 # the word "Apparent" is preceded when the coverage in that square was considered insufficient for a proper comparison in any of the two atlases
 
 EBBA_change <- read.csv2(file.path(datashare_EBCC, "EBBA_change", "ebba2_data_change_50km.csv"))
-EBBA_change
-table(EBBA_change$Change)
-length(unique(EBBA_change$birdlife_scientific_name)) # 152 species
-# which one is missing:
-species_selection <- read.csv(file = file.path("Data", "EBBA_niche_range_shifts_species_selection.csv"))
-species_selection$species[which(!species_selection$species %in% EBBA_change$birdlife_scientific_name)]
-# -> "Sylvia ruppeli" missing, why: "the species info did not pass the steps to have enough squares good enough in terms of comparability of efforts of coverage between the two atlases. Observed change for this species in the few squares in S Greece are thus considered not reliable at all (just effort differences)
+# (Sylvia ruppeli missing because "the species info did not pass the steps to have enough squares good enough in terms of comparability of efforts of coverage between the two atlases. Observed change for this species in the few squares in S Greece are thus considered not reliable at all (just effort differences)"
 
 # include all cell-species combinations with change codes A, C or E
 # sort to EBBA1 and EBBA2:
@@ -337,8 +333,7 @@ species_selection$species[which(!species_selection$species %in% EBBA_change$bird
 ## C = Stable = species occupies cell in both EBBA1 and EBBA2
 
 # EBBA comparable cells according to change data set:
-#EBBA_change_grid <- read_sf(file.path(datashare_EBCC, "EBBA_change", "ebba2_grid50x50_change_v1", "ebba2_grid50x50_change_v1.shp"))
-EBBA_change_grid <- read_sf(file.path("Data", "ebba2_grid50x50_change_v1", "ebba2_grid50x50_change_v1.shp")) # EPSG:3035
+EBBA_change_grid <- read_sf(file.path(datashare_EBCC, "EBBA_change", "ebba2_grid50x50_change_v1", "ebba2_grid50x50_change_v1.shp"))
 
 EBBA_change_sf <- st_centroid(EBBA_change_grid) %>% 
   full_join(EBBA_change, by = c("cell50x50_" = "cell50x50_change")) %>% 
@@ -352,9 +347,9 @@ EBBA1_ch_sf <- EBBA_change_sf %>%
 # EBBA2 change data:
 EBBA2_ch_sf <- EBBA_change_sf %>% 
   filter(Change %in% c("E", "C"))
-# not necessary to harmonise taxonomy or to remove non comparable cells
+# not necessary to harmonize taxonomy or to remove non comparable cells
 
 # save:
-st_write(EBBA_change_sf, file.path("Data", "EBBA_change.shp"), append = FALSE)
-st_write(EBBA1_ch_sf, file.path("Data", "EBBA1_change.shp"), append = FALSE)
-st_write(EBBA2_ch_sf, file.path("Data", "EBBA2_change.shp"), append = FALSE)
+st_write(EBBA_change_sf, file.path("data", "EBBA_analysis", "EBBA_change.shp"), append = FALSE)
+st_write(EBBA1_ch_sf, file.path("data", "EBBA_analysis", "EBBA1_change.shp"), append = FALSE)
+st_write(EBBA2_ch_sf, file.path("data", "EBBA_analysis", "EBBA2_change.shp"), append = FALSE)

@@ -25,33 +25,26 @@ library(ade4)
 #            Set-up:          ####
 # ------------------------------ #
 
+# species-specific background (500 km buffer around presences) or whole EBBA area as background:
+bg_spec <- FALSE # set to FALSE for whole EBBA area as environmental background
+
 # paths to data:
 
-#EBBA_data_dir <- file.path("Data")
-EBBA_data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
+#data_dir <- file.path("data", "EBBA_analysis")
+data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
 
-#bioclim_data_dir <- file.path("Data")
+#plots_dir <- "plots"
+plots_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts", "plots")
+
+#bioclim_data_dir <- file.path("data", "EBBA_analysis")
 bioclim_data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA")
 
-# should environmental background be species-specific (500 km buffer around presences) or the same for all species (whole EBBA area):
-env_background_species_specific <- TRUE # set to FALSE to use whole EBBA area as environmental background
-
 # folder for niche dynamics plots:
-if(env_background_species_specific){
-  plots_dir <- file.path(EBBA_data_dir, "plots", "EBBA_1_2_niche_dyn_env_species_spec_change")
-} else {
-  plots_dir <- file.path(EBBA_data_dir, "plots", "EBBA_1_2_niche_dyn_env_EBBA_change")
-}
-if(!dir.exists(plots_dir)){
-  dir.create(plots_dir, recursive = TRUE)
-}
+plots_dir <- file.path(plots_dir, "niche_dynamics_species", paste0("EBBA_niche_dyn_bg_", ifelse(bg_spec, "spec", "EBBA")))
+if(!dir.exists(plots_dir)){dir.create(plots_dir, recursive = TRUE)}
 
-# output file:
-if(env_background_species_specific){
-  results_file <- file.path(EBBA_data_dir, "niche_shift_results_env_species_spec_change.csv")
-} else {
-  results_file <- file.path(EBBA_data_dir, "niche_shift_results_env_EBBA_change.csv")
-}
+# results table:
+results_file <- file.path(data_dir, paste0("EBBA_niche_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"), ".csv"))
 
 
 # ---------------------------- #
@@ -59,28 +52,28 @@ if(env_background_species_specific){
 # ---------------------------- #
 
 # comparable EBBA cells:
-EBBA1_cells <- read_sf(file.path(EBBA_data_dir, "EBBA_change.shp")) %>% # output of 1_prep_EBBA_data.R
+EBBA_cells <- read_sf(file.path(data_dir, "EBBA_change.shp")) %>% # output of 1_EBBA_prep_data.R
   select(-species, -Change) %>% 
   distinct(cell50x50, .keep_all = TRUE) # keep geometry; would be the same when using EBBA2
 
-# species selection:
-load(file = file.path(EBBA_data_dir, "EBBA1_EBBA2_prep_steps1-4_final.RData")) # output of 2_1_EBBA_species_filtering_1-4.R
+# final species selection:
+load(file = file.path(data_dir, "EBBA1_EBBA2_prep_steps1-4_final.RData")) # output of 2_1_EBBA_species_filtering_1-4.R
 sel_species <- sort(unique(EBBA1_prep$species))
 
 # EBBA 1, only selected species: 
-EBBA1_sel_spec_df <- read_sf(file.path(EBBA_data_dir, "EBBA1_change.shp")) %>% # output of 1_prep_EBBA_data.R
+EBBA1_sel_spec_df <- read_sf(file.path(data_dir, "EBBA1_change.shp")) %>% # output of 1_EBBA_prep_data.R
   st_drop_geometry %>% 
   filter(species %in% sel_species)
 # add all comparable cells to later extract absences:
-EBBA1 <- EBBA1_cells %>% 
+EBBA1 <- EBBA_cells %>% 
   full_join(y = EBBA1_sel_spec_df, by = "cell50x50")
 
 # EBBA 2, only selected species:
-EBBA2_sel_spec_df <- read_sf(file.path(EBBA_data_dir, "EBBA2_change.shp")) %>% # output of 1_prep_EBBA_data.R
+EBBA2_sel_spec_df <- read_sf(file.path(data_dir, "EBBA2_change.shp")) %>% # output of 1_EBBA_prep_data.R
   st_drop_geometry %>% 
   filter(species %in% sel_species)
-# add all comparable cells to later extract absences:
-EBBA2 <- EBBA1_cells %>% 
+# add all comparable cells to later extract absences: # xx not necessary?
+EBBA2 <- EBBA_cells %>% 
   full_join(y = EBBA2_sel_spec_df, by = "cell50x50")
 
 
@@ -90,7 +83,7 @@ EBBA2 <- EBBA1_cells %>%
 
 ## PCA environment (if environmental background = whole EBBA area for all species) ----
 
-if(env_background_species_specific == FALSE){
+if(bg_spec == FALSE){
   
   # environmental background = all comparable EBBA cells:
   
@@ -101,9 +94,9 @@ if(env_background_species_specific == FALSE){
                                        full.names = TRUE))
   
   # climate data corresponding to EBBA 1 cells:
-  EBBA1_climate_data <- EBBA1_cells %>% 
+  EBBA1_climate_data <- EBBA_cells %>% 
     vect %>% # convert to terra object
-    cbind(terra::extract(biovars_hist_rast, y = .)) %>% # add bioclim data
+    cbind(terra::extract(biovars_hist_rast, y = .)) %>%
     as.data.frame %>% 
     select(-ID)
   
@@ -114,9 +107,9 @@ if(env_background_species_specific == FALSE){
                                       full.names = TRUE))
   
   # climate data corresponding to EBBA 2 cells:
-  EBBA2_climate_data <- EBBA1_cells %>% # same as EBBA2 cells
+  EBBA2_climate_data <- EBBA_cells %>% # same as EBBA2 cells
     vect %>% # convert to terra object
-    cbind(terra::extract(biovars_rec_rast, y = .)) %>% # add bioclim data
+    cbind(terra::extract(biovars_rec_rast, y = .)) %>%
     as.data.frame %>% 
     select(-ID)
   
@@ -146,15 +139,16 @@ if(env_background_species_specific == FALSE){
 # loop over species:
 
 # register cores for parallel computation:
-registerDoParallel(cores = 2)
+registerDoParallel(cores = 4)
 #getDoParWorkers() # check registered number of cores
 
 niche_shift_df <- foreach(s = 1:length(sel_species),
         .combine = rbind,
         .packages = c("ecospat", "ade4", "dplyr", "sf", "terra"), 
-        .verbose = TRUE) %dopar% {
+        .verbose = TRUE,
+        .errorhandling = "remove") %dopar% {
           
-          print(paste(s,":", sel_species[s]))
+          #print(paste(s,":", sel_species[s]))
   
           # climate data:
           # tifs with bioclim variables for historic and recent time period
@@ -189,23 +183,23 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
                                             "cons_p_S_A" = NA,
                                             "cons_p_U_A" = NA,
                                             # niche dynamic metrics:
-                                            "niche_stability_NA" = NA,
-                                            "niche_expansion_NA" = NA,
-                                            "niche_unfilling_NA" = NA,
-                                            "niche_stability_A" = NA,
-                                            "niche_expansion_A" = NA,
-                                            "niche_unfilling_A" = NA,
+                                            "nS_NA" = NA, # niche stability, non-analogue
+                                            "nE_NA" = NA, # niche expansion, non-analogue
+                                            "nU_NA" = NA, # niche unfilling, non-analogue
+                                            "nS_A" = NA, # niche stability, analogue
+                                            "nE_A" = NA, # niche expansion, analogue
+                                            "nU_A" = NA, # niche unfilling, analogue
                                             # niche characteristics:
-                                            "niche_centroid_hist_X" = NA, # not sure whether this is useful xx
-                                            "niche_centroid_hist_Y" = NA, # not sure whether this is useful xx
-                                            "niche_centroid_rec_X" = NA, # not sure whether this is useful xx
-                                            "niche_centroid_rec_Y" = NA, # not sure whether this is useful xx
-                                            "niche_centroids_dist" = NA) # not sure whether this is useful xx
+                                            "n_centroid_hist_X" = NA, # useful?
+                                            "n_centroid_hist_Y" = NA, # useful?
+                                            "n_centroid_rec_X" = NA, # useful?
+                                            "n_centroid_rec_Y" = NA, # useful?
+                                            "n_centroids_dist" = NA) # useful?
 
           
           ## (missing) PCA scores: ---------------------------------------------
           
-          if(env_background_species_specific){
+          if(bg_spec){
             
             # environmental background = all comparable EBBA1 cells that are within 500 km of the recorded presences of a species
             # -> PCA scores for species presence and absence points
@@ -222,12 +216,12 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
               st_union
             
             # background environment, presences and absences:
-            EBBA1_env_cells_df <- EBBA1_cells %>% 
+            EBBA1_env_cells_df <- EBBA_cells %>% 
               st_filter(EBBA1_spec_buffer, .pred = st_within) %>% 
               st_drop_geometry
             
             # data set for niche analysis:
-            EBBA1_spec_niche_data <- EBBA1_cells %>% 
+            EBBA1_spec_niche_data <- EBBA_cells %>% 
               mutate(species_occ = ifelse(cell50x50 %in% EBBA1_pres_sf$cell50x50, 1, 
                                           ifelse(cell50x50 %in% EBBA1_env_cells_df$cell50x50, 0, NA))) %>% # species occurrence (1 = presence, 0 = absence):
               filter(!is.na(species_occ)) %>% # remove cells outside of buffer
@@ -237,7 +231,7 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
               select(-ID)
             
             # check:
-            #plot(st_geometry(EBBA1_cells %>% st_filter(EBBA1_spec_buffer, .pred = st_within)))
+            #plot(st_geometry(EBBA_cells %>% st_filter(EBBA1_spec_buffer, .pred = st_within)))
             #plot(st_geometry(EBBA1_pres_sf), col = "red", add = TRUE)
             #plot(st_geometry(EBBA1_spec_buffer), add = TRUE)
             
@@ -253,12 +247,12 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
               st_union
             
             # background environment, presences and absences:
-            EBBA2_env_cells_df <- EBBA1_cells %>% 
+            EBBA2_env_cells_df <- EBBA_cells %>% 
               st_filter(EBBA2_spec_buffer, .pred = st_within) %>% 
               st_drop_geometry
             
             # data set for niche analysis:
-            EBBA2_spec_niche_data <- EBBA1_cells %>% 
+            EBBA2_spec_niche_data <- EBBA_cells %>% 
               mutate(species_occ = ifelse(cell50x50 %in% EBBA2_pres_sf$cell50x50, 1, 
                                           ifelse(cell50x50 %in% EBBA2_env_cells_df$cell50x50, 0, NA))) %>% # species occurrence (1 = presence, 0 = absence):
               filter(!is.na(species_occ)) %>% # remove cells outside of buffer
@@ -268,7 +262,7 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
               select(-ID)
             
             # check:
-            #plot(st_geometry(EBBA1_cells %>% st_filter(EBBA2_spec_buffer, .pred = st_within)))
+            #plot(st_geometry(EBBA_cells %>% st_filter(EBBA2_spec_buffer, .pred = st_within)))
             #plot(st_geometry(EBBA2_pres_sf), col = "red", add = TRUE)
             #plot(st_geometry(EBBA2_spec_buffer), add = TRUE)
             
@@ -307,7 +301,7 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
             EBBA1_spec_niche_data <- EBBA1 %>%
               filter(species == sel_species[s]) %>% 
               vect %>% # convert to terra object
-              cbind(terra::extract(biovars_hist_rast, y = .)) %>% # add bioclim data
+              cbind(terra::extract(biovars_hist_rast, y = .)) %>%
               as.data.frame %>% 
               select(-ID)
             
@@ -315,7 +309,7 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
             EBBA2_spec_niche_data <- EBBA2 %>%
               filter(species == sel_species[s]) %>% 
               vect %>% # convert to terra object
-              cbind(terra::extract(biovars_rec_rast, y = .)) %>% # add bioclim data
+              cbind(terra::extract(biovars_rec_rast, y = .)) %>%
               as.data.frame %>% 
               select(-ID)
             
@@ -336,7 +330,7 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
                                                    sp = scores.sp.EBBA1, # species occurrence
                                                    R = 100, # grid resolution
                                                    th.sp = 0)
-          # gridding EBBA1 niche:
+          # gridding EBBA2 niche:
           grid.clim.EBBA2 <- ecospat.grid.clim.dyn(glob = scores.globclim, # whole study area, both time periods
                                                    glob1 = scores.clim.EBBA2, # env. background
                                                    sp = scores.sp.EBBA2, # species occurrence
@@ -433,18 +427,18 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
                                                          grid.clim.EBBA2,
                                                          intersection = NA) # analysis performed on niche space of EBBA1 and EBBA2
           
-          niche_shift_spec_df$niche_stability_NA <- EBBA12_niche_dyn_NA$dynamic.index.w['stability']
-          niche_shift_spec_df$niche_expansion_NA <- EBBA12_niche_dyn_NA$dynamic.index.w['expansion']
-          niche_shift_spec_df$niche_unfilling_NA <- EBBA12_niche_dyn_NA$dynamic.index.w['unfilling']
+          niche_shift_spec_df$nS_NA <- EBBA12_niche_dyn_NA$dynamic.index.w['stability']
+          niche_shift_spec_df$nE_NA <- EBBA12_niche_dyn_NA$dynamic.index.w['expansion']
+          niche_shift_spec_df$nU_NA <- EBBA12_niche_dyn_NA$dynamic.index.w['unfilling']
         
           # analogue conditions:
           EBBA12_niche_dyn_A <- ecospat.niche.dyn.index(grid.clim.EBBA1, 
                                                         grid.clim.EBBA2,
                                                         intersection = 0) # analysis performed on intersection of niche space of EBBA1 and EBBA2
           
-          niche_shift_spec_df$niche_stability_A <- EBBA12_niche_dyn_A$dynamic.index.w['stability']
-          niche_shift_spec_df$niche_expansion_A <- EBBA12_niche_dyn_A$dynamic.index.w['expansion']
-          niche_shift_spec_df$niche_unfilling_A <- EBBA12_niche_dyn_A$dynamic.index.w['unfilling']
+          niche_shift_spec_df$nS_A <- EBBA12_niche_dyn_A$dynamic.index.w['stability']
+          niche_shift_spec_df$nE_A <- EBBA12_niche_dyn_A$dynamic.index.w['expansion']
+          niche_shift_spec_df$nU_A <- EBBA12_niche_dyn_A$dynamic.index.w['unfilling']
           
           
           # save plot of niche dynamics:
@@ -456,9 +450,9 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
                                  quant = 0.05,
                                  interest = 2, # 1 = EBBA1 density, 2 = EBBA2 density
                                  title = paste(sel_species[s],":",
-                                               "stability:", round(niche_shift_spec_df$niche_stability_NA,3),
-                                               "expansion:", round(niche_shift_spec_df$niche_expansion_NA,3),
-                                               "unfiling:", round(niche_shift_spec_df$niche_unfilling_NA,3)),
+                                               "stability:", round(niche_shift_spec_df$nS_NA,3),
+                                               "expansion:", round(niche_shift_spec_df$nE_NA,3),
+                                               "unfiling:", round(niche_shift_spec_df$nU_NA,3)),
                                  name.axis1 = "PC1",
                                  name.axis2 = "PC2")
           dev.off()
@@ -472,14 +466,14 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
           # niche centroids:
           
           # as median of species EBBA distribution scores along the first 2 PCA axes:
-          niche_shift_spec_df$niche_centroid_hist_X <- median(scores.sp.EBBA1[,1]) 
-          niche_shift_spec_df$niche_centroid_hist_Y <- median(scores.sp.EBBA1[,2])
-          niche_shift_spec_df$niche_centroid_rec_X <- median(scores.sp.EBBA2[,1])
-          niche_shift_spec_df$niche_centroid_rec_Y <- median(scores.sp.EBBA2[,2])
+          niche_shift_spec_df$n_centroid_hist_X <- median(scores.sp.EBBA1[,1]) 
+          niche_shift_spec_df$n_centroid_hist_Y <- median(scores.sp.EBBA1[,2])
+          niche_shift_spec_df$n_centroid_rec_X <- median(scores.sp.EBBA2[,1])
+          niche_shift_spec_df$n_centroid_rec_Y <- median(scores.sp.EBBA2[,2])
           
           # niche shift:
-          niche_shift_spec_df$niche_centroids_dist <- sqrt(((niche_shift_spec_df$niche_centroid_rec_X - niche_shift_spec_df$niche_centroid_hist_X)^2) + 
-                                                           ((niche_shift_spec_df$niche_centroid_rec_Y - niche_shift_spec_df$niche_centroid_hist_Y)^2))
+          niche_shift_spec_df$n_centroids_dist <- sqrt(((niche_shift_spec_df$n_centroid_rec_X - niche_shift_spec_df$n_centroid_hist_X)^2) + 
+                                                           ((niche_shift_spec_df$n_centroid_rec_Y - niche_shift_spec_df$n_centroid_hist_Y)^2))
           
           niche_shift_spec_df
           }
@@ -488,9 +482,9 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
 ## standardise niche dynamic metrics: ------------------------------------------
 
 # non-analogue climatic conditions:
-e <- niche_shift_df$niche_expansion_NA # expansion related to whole niche space (EBBA1 and EBBA2) 
-s <- niche_shift_df$niche_stability_NA # stability related to whole niche space (EBBA1 and EBBA2)
-u <- niche_shift_df$niche_unfilling_NA # unfilling related to whole niche space (EBBA1 and EBBA2)
+e <- niche_shift_df$nE_NA # expansion related to whole niche space (EBBA1 and EBBA2) 
+s <- niche_shift_df$nS_NA # stability related to whole niche space (EBBA1 and EBBA2)
+u <- niche_shift_df$nU_NA # unfilling related to whole niche space (EBBA1 and EBBA2)
 
 # stability, non-analogue conditions, related to EBBA1 niche:
 s_x <- 1 - u
@@ -507,9 +501,9 @@ s_rel <- s / t
 e_rel <- e / t
 
 # analogue climatic conditions:
-e_a <- niche_shift_df$niche_expansion_A # expansion related to analogue EBBA2 niche space
-s_a <- niche_shift_df$niche_stability_A # stability related to analogue EBBA2 niche space
-u_a <- niche_shift_df$niche_unfilling_A # unfilling related to analogue EBBA1 niche space
+e_a <- niche_shift_df$nE_A # expansion related to analogue EBBA2 niche space
+s_a <- niche_shift_df$nS_A # stability related to analogue EBBA2 niche space
+u_a <- niche_shift_df$nU_A # unfilling related to analogue EBBA1 niche space
 
 # stability, analogue conditions, related to EBBA1 niche space:
 s_y <- 1 - u_a

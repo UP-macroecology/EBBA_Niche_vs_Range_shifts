@@ -1,9 +1,9 @@
 # prepare BBS data based on: https://github.com/UP-macroecology/bbs_dataprep/blob/main/BBS_info.md
+# output: shapefiles of validation route centroids and species presence / true absence information for historic and recent time period
 
 library(dplyr)
 library(tidyr)
 library(sf)
-# use the package devtools to install bbsAssistant directly from github
 #devtools::install_github("trashbirdecology/bbsAssistant")
 library(bbsAssistant)
 
@@ -13,18 +13,16 @@ library(bbsAssistant)
 # ------------------------------ #
 
 # project data:
-#data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
-data_dir <- file.path("Data")
+data_dir <- file.path("data", "BBS_analysis")
 
 # datashare BBS:
 datashare_BBS <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data", "biodat", "distribution", "BBS") 
 
 
-# folder for BBS data:
-# create folder if it doesn't exist yet:
-if(!dir.exists(file.path(data_dir, "BBS"))){dir.create(file.path(data_dir, "BBS"), recursive = TRUE)}
+# ------------------------------ #
+#          Functions:         ####
+# ------------------------------ #
 
-# function: 
 # modified version of bbsAssistant::import_bbs_data (replaced "50-StopData.zip" with "States.zip")
 # only needed for data before 1997
 
@@ -138,16 +136,16 @@ import_bbs_data_states <- function(bbs_dir, sb_id) {
 # observed on routes that were sampled in each year of a time period.)
 
 # import BBS counts (aggregated to 5 sections - States.zip):
-bbs_agg <- import_bbs_data_states(bbs_dir = file.path(data_dir, "BBS"), 
+bbs_agg <- import_bbs_data_states(bbs_dir = file.path("data", "BBS_data"), # same as in file.path(datashare_BBS, "NABBS_2020")
                                   sb_id = "5ea04e9a82cefae35a129d65") # sb_id = sb_item of the current BBS dataset (can be looked up by typing sb_items)
-# write species list (to later merge ids to names):
-#write.csv(bbs_agg$species_list, file = file.path(data_dir, "BBS_species_list.csv"))
+# save species list (later used to merge species ids to species names):
+#write.csv(bbs_agg$species_list, file = file.path("data", "BBS_species_list.csv"))
 
 # merge BBS datasets:
 bbs_merged <- bbs_agg$observations %>% 
   left_join(bbs_agg$routes) %>% 
   left_join(bbs_agg$weather) %>% 
-  # only conterminous United States routes (we have no detailed spatial info for other BBS countries)
+  # only conterminous United States routes (no detailed spatial info for other BBS countries)
   filter(CountryNum == 840) %>% 
   filter(StateNum != 3) # exclude Alaska
 
@@ -155,11 +153,13 @@ rm(bbs_agg)
 
 # time periods to compare:
 # 3-year periods as in Sofaer et al. 2018 (Sofaer et al. use 1977-1979 and 2012-2014)
-# historic: 2 versions (see following for loop)
-recent <- 2016:2018 # 2018: end of available Chelsa data
+
+# historic: 2 versions
 historic_periods <- list(1981:1983, 1996:1998) 
 # 1981-1983: Chelsa data start 1980, historic time period starts 1981 because Chelsa data of year preceding the considered time period are included to account for lag effects (see Sofaer et al. 2018)
-# 1996-1998: yields similar time gap as between EBBA1 and EBBA2
+# 1996-1998: similar time gap as between EBBA1 and EBBA2
+
+recent <- 2016:2018 # 2018: end of available Chelsa data
 
 # route sections from which to use data (all five sections are about 40 km)
 sections <- paste0("Count", seq(10, 50, by = 10))
@@ -168,7 +168,7 @@ sections <- paste0("Count", seq(10, 50, by = 10))
 
 bbs_routes_sf <- read_sf(file.path(datashare_BBS, "bbs_routes", "bbsrtsl020.shp")) %>% 
   st_transform(crs = "ESRI:102003") %>% # Albers Equal Area projection
-  mutate(RTENO_BBSf = paste0("840", stringr::str_pad(RTENO, width = 5, side = "left", pad = "0")))# reformat RTENO to match RTENO from BBS data imported with the bbsAssistant package
+  mutate(RTENO_BBSf = paste0("840", stringr::str_pad(RTENO, width = 5, side = "left", pad = "0"))) # reformat RTENO to match RTENO from BBS data imported with the bbsAssistant package
 
 # loop over 2 versions for historic period:
 for(i in 1:length(historic_periods)){ 
@@ -179,7 +179,7 @@ for(i in 1:length(historic_periods)){
   
   ## validation route IDs: ----
   
-  # routes that were sampled in all three years (to get true absences) of both periods (comparison of historic and recent time period based on same routes)
+  # routes that were sampled in all 3 years (to get true absences) of both periods (comparison of historic and recent time period based on same routes)
   
   valid_routes <- bbs_merged %>%
     
@@ -206,7 +206,7 @@ for(i in 1:length(historic_periods)){
     # use only validation routes (= sampled in all years of both time periods):
     filter(RTENO %in% valid_routes) %>% 
     
-    # filter the data by recorded quality index:
+    # filter by recorded quality index:
     filter(RunType == 1) %>% # RunType 1 means QualityCurrentID == 1 & RouteTypeDetailID == 1 & RPID == 101
     
     # remove water based routes:
@@ -215,7 +215,7 @@ for(i in 1:length(historic_periods)){
     # select only data from two time periods we want to compare (historic and recent):
     filter(Year %in% c(historic, recent)) %>% 
     # assign a flag for each time period
-    mutate(period = if_else(Year %in% historic, 1, 2)) %>% # 2,063,001
+    mutate(period = if_else(Year %in% historic, 1, 2)) %>%
     
     # add presence information:
     
@@ -223,14 +223,14 @@ for(i in 1:length(historic_periods)){
     mutate(present_year = if_else(rowSums(select(., all_of(sections))) > 0, 1, 0)) %>% 
     
     # b) assign presence where a species was present at least once in a time period on a route (= final presences)
-    group_by(AOU, period, RTENO) %>% # species, time period, route ID
+    group_by(AOU, period, RTENO) %>%
     mutate(present_period = if_else(sum(present_year) > 0, 1, 0)) %>% 
     ungroup
   
   
   # split data into historic and recent period, add true absence information, convert to long format: ----
   
-  # (true absence = species was not observed in each year of the time period)
+  # (true absence = species was not observed in any year of the time period)
   
   # historic time period:
   model_df_hist <- bbs_cleaned %>% 
@@ -239,7 +239,7 @@ for(i in 1:length(historic_periods)){
     pivot_wider(names_from = AOU, # species as columns, to get each route-species combination
                 values_from = present_period) %>% # 1 = present, NA = true absence (no presence recorded, although sampled in each year of the time period)
     mutate(across(.cols = c(5:ncol(.)), .fns = ~ ifelse(is.na(.x), 0, .)))  %>% # change NA to 0 for true absence
-    filter(period == 1) %>% # historic time period (filter at the end to have column for every species)
+    filter(period == 1) %>% # historic time period (filter only here to get a column for each species)
     select(-period) %>% 
     pivot_longer(cols = 4:ncol(.), names_to = "AOU", values_to = "pres") %>%  # convert back to long format with presence/absence column
     mutate(AOU = as.numeric(AOU))
@@ -247,17 +247,17 @@ for(i in 1:length(historic_periods)){
   # recent time period:
   model_df_rec <- bbs_cleaned %>% 
     select(RTENO, Latitude, Longitude, AOU, period, present_period) %>% 
-    distinct() %>% # one row for each route and time period
-    pivot_wider(names_from = AOU, # species as columns, to get each route-species combination
-                values_from = present_period) %>% #  1 = present, NA = true absence (no presence recorded, although sampled in each year of the time period)
-    mutate(across(.cols = c(5:ncol(.)), .fns = ~ ifelse(is.na(.x), 0, .)))  %>% # change NA to 0 for true absence
-    filter(period == 2) %>% # recent time period (filter at the end to have column for every species)
+    distinct() %>%
+    pivot_wider(names_from = AOU,
+                values_from = present_period) %>%
+    mutate(across(.cols = c(5:ncol(.)), .fns = ~ ifelse(is.na(.x), 0, .)))  %>%
+    filter(period == 2) %>%
     select(-period) %>% 
-    pivot_longer(cols = 4:ncol(.), names_to = "AOU", values_to = "pres") %>% # convert back to long format with presence/absence column
+    pivot_longer(cols = 4:ncol(.), names_to = "AOU", values_to = "pres") %>%
     mutate(AOU = as.numeric(AOU))
 
   # add species names:
-  species_names <- read.csv(file.path(data_dir, "BBS_species_list.csv")) %>% 
+  species_names <- read.csv(file.path("data", "BBS_species_list.csv")) %>% 
     select(c(AOU, Scientific_Name))
   
   model_df_hist <- model_df_hist %>% 
@@ -270,12 +270,11 @@ for(i in 1:length(historic_periods)){
   
   # add route centroids: ----
   
-  # for which validation routes do we have spatial information on route:
+  # calculate centroids for validation routes of which we have full spatial information:
 
   bbs_routes_sf_val <- bbs_routes_sf %>% 
     filter(RTENO_BBSf %in% valid_routes) %>% 
-    group_by(RTENO_BBSf) %>% # in shapefile on datashare some routes consist of two adjacent lines, need to be merged
-    summarise %>%
+    group_by(RTENO_BBSf) %>% summarise %>% # merge lines if routes in shapefile consist of multiple adjacent lines
     mutate(centroid_X = NA) %>% 
     mutate(centroid_Y = NA) # 521 (V1), 930 (V2)
   
@@ -298,7 +297,7 @@ for(i in 1:length(historic_periods)){
   model_df_hist <- model_df_hist %>% 
     left_join(st_drop_geometry(bbs_routes_sf_val[,c("RTENO_BBSf", "centroid_X", "centroid_Y")]), by = c("RTENO" = "RTENO_BBSf"))
   
-  # spatial feature with coordinates = route centroids (if route geometry is not available, use start points)
+  # resulting historic BBS dataset as spatial feature, coordinates either route centroid, if available, or route starting point: 
   BBS_hist_sf <- st_as_sf(model_df_hist, coords = c("Longitude", "Latitude"), crs = 4269) %>% 
     st_transform(crs = "ESRI:102003") %>% # Albers Equal Area projection
     mutate(start_X = st_coordinates(.)[,"X"]) %>% # extract coordinates of start point
@@ -310,22 +309,23 @@ for(i in 1:length(historic_periods)){
     st_as_sf(coords = c("centroid_X", "centroid_Y"), crs = "ESRI:102003")
   
   # write to shapefile:
-  st_write(BBS_hist_sf, file.path(data_dir, paste0("BBS_historic", i, "_proj_centroids.shp")), append = FALSE)
+  st_write(BBS_hist_sf, file.path(data_dir, paste0("BBS_historic_", "centr_proj_", ifelse(i == 1, "hist81-83", "hist96-98"), ".shp")), append = FALSE)
   
   # add centroid coordinates to recent df:
   model_df_rec <- model_df_rec %>% 
     left_join(st_drop_geometry(bbs_routes_sf_val[,c("RTENO_BBSf", "centroid_X", "centroid_Y")]), by = c("RTENO" = "RTENO_BBSf"))
   
+  # resulting recent BBS dataset as spatial feature, coordinates either route centroid, if available, or route starting point: 
   BBS_rec_sf <- st_as_sf(model_df_rec, coords = c("Longitude", "Latitude"), crs = 4269) %>% 
-    st_transform(crs = "ESRI:102003") %>% # Albers Equal Area projection
-    mutate(start_X = st_coordinates(.)[,"X"]) %>% # extract coordinates of start point
+    st_transform(crs = "ESRI:102003") %>%
+    mutate(start_X = st_coordinates(.)[,"X"]) %>%
     mutate(start_Y = st_coordinates(.)[,"Y"]) %>%
-    mutate(geom_av = ifelse(is.na(centroid_X), 0, 1)) %>% # add information whether route geometry is available
-    mutate(centroid_X = ifelse(is.na(centroid_X), start_X, centroid_X)) %>% # use start point as coordinate if route geometry is not available
+    mutate(geom_av = ifelse(is.na(centroid_X), 0, 1)) %>%
+    mutate(centroid_X = ifelse(is.na(centroid_X), start_X, centroid_X)) %>%
     mutate(centroid_Y = ifelse(is.na(centroid_Y), start_Y, centroid_Y)) %>% 
-    st_drop_geometry %>% # change geometry from start point to centroid
+    st_drop_geometry %>%
     st_as_sf(coords = c("centroid_X", "centroid_Y"), crs = "ESRI:102003")
  
   # write to shapefile:
-  st_write(BBS_rec_sf, file.path(data_dir, paste0("BBS_recent", i, "_proj_centroids.shp")), append = FALSE) # recent contains different validation routes depending on historic years considered
+  st_write(BBS_rec_sf, file.path(data_dir, paste0("BBS_recent_", "centr_proj_", ifelse(i == 1, "hist81-83", "hist96-98"), ".shp")), append = FALSE) # recent contains different validation routes depending on historic years considered
 }
