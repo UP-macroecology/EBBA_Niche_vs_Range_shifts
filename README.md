@@ -149,6 +149,9 @@ First, for each species the central range coordinates in the historic and recent
 The density grids of species occurrences are restricted to the EBBA land area (EBBA_ecospat_mask_change_cells_buffer20km.tif) and the conterminous US, Canada and Mexico, respectively. Schoener's D, the results of similarity tests with regard to range shifting (column names starting with "shift_p") and range conservatism (column names starting with "cons_p") with regard to analogue (column name containing "A") and non-analogue (column name containing "NA") conditions, as well as standardized indices for range dynamics (stability S, expansion E and unfilling U) are stored in a csv file.
 - outputs: EBBA_range_shift_results_bg_EBBA.csv, EBBA_range_shift_results_bg_spec.csv, BBS_range_shift_results_bg_spec_hist81-83.csv, BBS_range_shift_results_bg_US_hist81-83.csv, BBS_range_shift_results_bg_spec_hist96-98.csv, BBS_range_shift_results_bg_US_hist96-98.csv, plots/range_dynamics_species
 
+#### 5_BioShifts_explorations.R:
+Exploring the BioShifts dataset (Lenoir et al. 2020) for the selected EBBA and BBS species.
+
 #### 5_(EBBA/BBS)_plots_results.R:
 Scripts to produce the plots (see "plots" section).
 
