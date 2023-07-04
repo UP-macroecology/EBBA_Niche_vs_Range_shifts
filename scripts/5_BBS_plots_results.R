@@ -7,6 +7,7 @@ library(ggplot2)
 library(tidyr)
 library(cowplot)
 library(ade4)
+library(quantreg)
 
 # ------------------------------ #
 #            Set-up:          ####
@@ -17,11 +18,11 @@ data_dir <- file.path("data", "BBS_analysis")
 plots_dir <- file.path("plots")
 
 # which historic time period should be used:
-#hist_years <- 1980:1983 # maximum gap between historic and recent time period
-hist_years <- 1995:1998 # similar gap between historic and recent time period as in EBBA analysis
+hist_years <- 1980:1983 # maximum gap between historic and recent time period
+# hist_years <- 1995:1998 # similar gap between historic and recent time period as in EBBA analysis
 
-# environmental background: presences and absences within 600 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
-bg_spec <- FALSE
+# environmental background: presences and absences within 500 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
+bg_spec <- TRUE
 
 
 # ---------------------------- #
@@ -29,7 +30,7 @@ bg_spec <- FALSE
 # ---------------------------- #
 
 # species selection: 
-sel_species <- read.csv(file = file.path(data_dir, "species_stability_contUS_BL22.csv")) %>% 
+sel_species <- read.csv(file = file.path(data_dir, "species_stability_contUS_BL22_160623.csv")) %>% 
   filter(stability >= 0.5) %>% 
   pull(species) %>% 
   sort
@@ -46,10 +47,12 @@ BBS_rec_sf <- read_sf(file.path(data_dir, paste0("BBS_recent_centr_proj_hist", i
   filter(species %in% sel_species_final)
 
 # load analyses results (output of 4_BBS_niche_shift_analysis.R and 4_BBS_range_shift_analysis.R)
-niche_results <- read.csv(file.path(data_dir, paste0("BBS_niche_shift_results_bg_", 
-                                                     ifelse(bg_spec, "spec", "US"), "_hist", 
-                                                     ifelse(all(hist_years == 1980:1983), "81-83", "96-98"),
-                                                     ".csv")))
+# niche_results <- read.csv(file.path(data_dir, paste0("BBS_niche_shift_results_bg_",
+#                                                      ifelse(bg_spec, "spec", "US"), "_hist",
+#                                                      ifelse(all(hist_years == 1980:1983), "81-83", "96-98"),
+#                                                      ".csv")))
+niche_results <- read.csv(file.path(data_dir, "BBS_niche_shift_results_bg_spec_hist81-83_170623.csv"))
+
 
 range_results <- read.csv(file.path(data_dir, paste0("BBS_range_shift_results_bg_", 
                                                      ifelse(bg_spec, "spec", "US"), "_hist", 
@@ -304,25 +307,25 @@ range_test_sign <- range_results %>%
   mutate(across(everything(), ~ round(.x/length(sel_species)*100, 2)))
 
 # species (%) with significantly higher dynamics than by chance:
-spec_sign_higher <- c("NA", # niche abandonment
-                      niche_test_sign$shift_p_U_NA_n_sig, # niche unfilling
-                      niche_test_sign$cons_p_S_NA_n_sig, # niche stability
-                      niche_test_sign$shift_p_E_NA_n_sig, # niche expansion
-                      "NA", # niche pioneering,
-                      range_test_sign$shift_p_U_NA_n_sig, # range unfilling
-                      range_test_sign$cons_p_S_NA_n_sig, # range stabiliy
-                      range_test_sign$shift_p_E_NA_n_sig # range expansion
+spec_sign_higher <- c("", # niche abandonment
+                      niche_test_sign$shift_p_U_A_n_sig, # niche unfilling
+                      niche_test_sign$cons_p_S_A_n_sig, # niche stability
+                      niche_test_sign$shift_p_E_A_n_sig, # niche expansion
+                      "", # niche pioneering,
+                      range_test_sign$shift_p_U_A_n_sig, # range unfilling
+                      range_test_sign$cons_p_S_A_n_sig, # range stabiliy
+                      range_test_sign$shift_p_E_A_n_sig # range expansion
 )
 
 # species (%) with significantly lower dynamics than by chance:
-spec_sign_lower <- c("NA", # niche abandonment
-                     niche_test_sign$cons_p_U_NA_n_sig, # niche unfilling
-                     niche_test_sign$shift_p_S_NA_n_sig, # niche stability
-                     niche_test_sign$cons_p_E_NA_n_sig, # niche expansion
-                     "NA", # niche pioneering,
-                     range_test_sign$cons_p_U_NA_n_sig, # range unfilling
-                     range_test_sign$shift_p_S_NA_n_sig, # range stabiliy
-                     range_test_sign$cons_p_E_NA_n_sig # range expansion
+spec_sign_lower <- c("", # niche abandonment
+                     niche_test_sign$cons_p_U_A_n_sig, # niche unfilling
+                     niche_test_sign$shift_p_S_A_n_sig, # niche stability
+                     niche_test_sign$cons_p_E_A_n_sig, # niche expansion
+                     "", # niche pioneering,
+                     range_test_sign$cons_p_U_A_n_sig, # range unfilling
+                     range_test_sign$shift_p_S_A_n_sig, # range stabiliy
+                     range_test_sign$cons_p_E_A_n_sig # range expansion
 )
 
 # join niche and range shift results, convert to long format:
@@ -340,7 +343,7 @@ labelsdat <- tibble(category = c(rep("niche", 5), rep("range", 3)),
                     sign_higher = spec_sign_higher,
                     sign_lower = spec_sign_lower,
                     ypos_higher = 110,
-                    ypos_lower = -15)
+                    ypos_lower = -22)
 
 # plot:
 p <- ggplot(niche_range_df, aes(x = category, y = value*100, fill = metric)) + # aes given inside ggplot() necessary for geom_text
@@ -349,18 +352,18 @@ p <- ggplot(niche_range_df, aes(x = category, y = value*100, fill = metric)) + #
   #facet_grid(~ category, scales = "free") +
   theme_bw() +
   theme(panel.grid = element_blank()) +
-  ylab("dynamics [%]") +
+  ylab("Metrics [%]") +
   xlab("") +
-  scale_fill_viridis_d("dynamics") +
-  scale_y_continuous(breaks = seq(0, 100, 20), expand = expansion(add = 5)) +
-  annotate(geom = "text", label = "Species (%) with significantly higher dynamics than by chance:", 
-           x = 0.5, y = 115, hjust = 0, vjust = 0, size = 3) + # xx
+  scale_fill_viridis_d("Metrics") +
+  scale_y_continuous(breaks = seq(0, 100, 20), expand = expansion(add = 10)) +
+  annotate(geom = "text", label = "Species (%) with significantly higher metrics than expected by chance:", 
+           x = 0.5, y = 118, hjust = 0, vjust = 0, size = 3) + # xx
   geom_text(data = labelsdat, aes(label = spec_sign_higher, y = ypos_higher),
             position = position_dodge2(width = 0.9, preserve = "single"), size = 3) +
   geom_hline(yintercept = 105) +
   geom_hline(yintercept = -5) +
-  annotate(geom = "text", label = "Species (%) with significantly lower dynamics than by chance:", 
-           x = 0.5, y = -10, hjust = 0, vjust = 0, size = 3) +
+  annotate(geom = "text", label = "Species (%) with significantly lower metrics than expected by chance:", 
+           x = 0.5, y = -14, hjust = 0, vjust = 0, size = 3) +
   geom_text(data = labelsdat, aes(label = spec_sign_lower, y = ypos_lower),
             position = position_dodge2(width = 0.9, preserve = "single"), size = 3)
 
@@ -371,7 +374,7 @@ pdf(file = file.path("plots", "dynamics_boxplots", paste0("BBS_boxplot_dynamics_
                                                           ifelse(bg_spec, "spec", "US"), "_hist",
                                                           ifelse(all(hist_years == 1980:1983), "81-83", "96-98"),
                                                           ".pdf")),
-    height = 5, width = 8)
+    height = 3, width = 8)
 p
 dev.off()
 
@@ -383,35 +386,71 @@ metrics_df <- range_results %>%
   select(range_stability_std, range_unfilling_std, range_expansion_std,
          niche_stability_std, niche_unfilling_std, niche_expansion_std)
 
+cor1 <- with(metrics_df,cor.test(range_expansion_std, niche_unfilling_std))
+xrange <- range(metrics_df$niche_unfilling_std)
+yrange <- range(metrics_df$range_expansion_std)
 p1 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_unfilling_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche U") + ylab("range E")
+  theme_bw() + xlab("niche U") + ylab("range E") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor1$estimate,2),ifelse(cor1$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+cor2 <- with(metrics_df,cor.test(range_expansion_std, niche_stability_std))
+xrange <- range(metrics_df$niche_stability_std)
+yrange <- range(metrics_df$range_expansion_std)
 p2 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_stability_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche S") + ylab("range E")
+  theme_bw() + xlab("niche S") + ylab("range E") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor2$estimate,2),ifelse(cor2$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+cor3 <- with(metrics_df,cor.test(range_expansion_std, niche_expansion_std))
+xrange <- range(metrics_df$niche_expansion_std)
+yrange <- range(metrics_df$range_expansion_std)
 p3 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_expansion_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche E") + ylab("range E")
+  theme_bw() + xlab("niche E") + ylab("range E") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor3$estimate,2),ifelse(cor3$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
 
+cor4 <- with(metrics_df,cor.test(range_stability_std, niche_unfilling_std))
+xrange <- range(metrics_df$niche_unfilling_std)
+yrange <- range(metrics_df$range_stability_std)
 p4 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_unfilling_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche U") + ylab("range S")
+  theme_bw() + xlab("niche U") + ylab("range S") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor4$estimate,2),ifelse(cor4$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+cor5 <- with(metrics_df,cor.test(range_stability_std, niche_stability_std))
+xrange <- range(metrics_df$niche_stability_std)
+yrange <- range(metrics_df$range_stability_std)
 p5 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_stability_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche S") + ylab("range S")
+  theme_bw() + xlab("niche S") + ylab("range S") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.95), label = paste0("r=",round(cor5$estimate,2),ifelse(cor5$p.value<0.05,"*","")), vjust=0, hjust=1, color="red")
+cor6 <- with(metrics_df,cor.test(range_stability_std, niche_expansion_std))
+xrange <- range(metrics_df$niche_expansion_std)
+yrange <- range(metrics_df$range_stability_std)
 p6 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_expansion_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche E") + ylab("range S")
+  theme_bw() + xlab("niche E") + ylab("range S") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor6$estimate,2),ifelse(cor6$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
 
+cor7 <- with(metrics_df,cor.test(range_unfilling_std, niche_unfilling_std))
+xrange <- range(metrics_df$niche_unfilling_std)
+yrange <- range(metrics_df$range_unfilling_std)
 p7 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_unfilling_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche U") + ylab("range U")
+  theme_bw() + xlab("niche U") + ylab("range U") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor7$estimate,2),ifelse(cor7$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+cor8 <- with(metrics_df,cor.test(range_unfilling_std, niche_stability_std))
+xrange <- range(metrics_df$niche_stability_std)
+yrange <- range(metrics_df$range_unfilling_std)
 p8 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_stability_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche S") + ylab("range U")
+  theme_bw() + xlab("niche S") + ylab("range U") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor8$estimate,2),ifelse(cor8$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+cor9 <- with(metrics_df,cor.test(range_unfilling_std, niche_expansion_std))
+xrange <- range(metrics_df$niche_expansion_std)
+yrange <- range(metrics_df$range_unfilling_std)
 p9 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_expansion_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche E") + ylab("range U")
+  theme_bw() + xlab("niche E") + ylab("range U") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor9$estimate,2),ifelse(cor9$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
 
 
 pdf(file = file.path(plots_dir, "dynamics_correlations", paste0("BBS_correlation_dynamics_bg_",
@@ -465,6 +504,7 @@ dir_shift_hist <- ggplot(range_results, aes(x = shift_direction)) +
   scale_x_continuous(limits = c(-180, 180),
                      breaks = seq(-180, 180, by = 30),
                      minor_breaks = seq(-180, 180, by = 15)) +
+  ylab("Number of species") + 
   xlab("") +
   theme_minimal()
 
@@ -489,6 +529,20 @@ pdf(file = file.path(plots_dir, "range_shift_direction", paste0("BBS_rshift_dire
                                                                 ".pdf")),
     height = 5, width = 6)
 dir_shift_hist
+dev.off()
+
+# combine range shift and direction:
+p_climate_change <- plot_grid(dir_shift_p2, dir_shift_hist,
+                              labels = "AUTO",
+                              align = "h",
+                              nrow = 1,
+                              axis = "tblr",
+                              rel_widths = c(1.5, 1.5, 1.5),
+                              rel_heights = c(0.25, 5, 5))
+
+pdf(file = file.path(plots_dir, "range_shift_direction", "BBS_rshift_direction.pdf"),
+    height = 3, width = 8)
+p_climate_change
 dev.off()
 
 

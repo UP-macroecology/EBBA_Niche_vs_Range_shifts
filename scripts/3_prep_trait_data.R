@@ -126,9 +126,9 @@ if(dataset == "EBBA"){
 
 if(dataset == "EBBA"){
   
-  years <- 2009:2018
+  years <- 2012:2017
   
-  bioclim_folder <- file.path(data_dir, "Bioclim_global_2009_2018")
+  bioclim_folder <- file.path(data_dir, paste0("Bioclim_global_", min(years), "_", max(years)))
   
   # output folder for niche plots:
   plots_dir <- file.path("plots", "niche_breadth_species", "EBBA_BL_niche_breadth")
@@ -145,7 +145,8 @@ if(dataset == "EBBA"){
 
 if(dataset == "BBS"){
   
-  years <- 2016:2018
+  years <- 2015:2018
+  # years <- 2016:2018
   
   bioclim_folder <- file.path(data_dir, paste0("Bioclim_global_", min(years), "_", max(years)))
   

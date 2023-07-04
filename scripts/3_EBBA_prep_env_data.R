@@ -35,7 +35,7 @@ getDoParWorkers() # check registered number of cores
 # historic (1981-1990) and recent time period (2009-2018)
 
 chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE, 
-                          pattern = paste0("(", paste(c(1981:1990, 2009:2018), collapse = "|"), ")_V.2.1.tif")) # 960
+                          pattern = paste0("(", paste(c(1984:1988, 2012:2017), collapse = "|"), ")_V.2.1.tif")) # 960
 
 # names for reprojected Chelsa files:
 names <- paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "\\.tif")})), "_EPSG3035_50km.tif")
@@ -96,12 +96,12 @@ months <- str_pad(1:12, width = 2, pad = "0")
 EBBA_mask <- raster(file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "EBBA2_area.tif"))
 
 # folder to store bioclim rasters for historic time period:
-bioclim_1981_1990 <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "Bioclim_1981_1990")
-if(!dir.exists(bioclim_1981_1990)){dir.create(bioclim_1981_1990, recursive = TRUE)}
+bioclim_1984_1988 <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "Bioclim_1984_1988")
+if(!dir.exists(bioclim_1984_1988)){dir.create(bioclim_1984_1988, recursive = TRUE)}
 
 # folder to store bioclim rasters for recent time period:
-bioclim_2009_2018 <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "Bioclim_2009_2018")
-if(!dir.exists(bioclim_2009_2018)){dir.create(bioclim_2009_2018, recursive = TRUE)} 
+bioclim_2012_2017 <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA", "Bioclim_2012_2017")
+if(!dir.exists(bioclim_2012_2017)){dir.create(bioclim_2012_2017, recursive = TRUE)} 
 
 
 # loop over time periods:
@@ -110,11 +110,11 @@ for(t in 1:2){
   print(paste("time period", t))
   
   if(t == 1){
-    years <- 1981:1990
-    output_folder <- bioclim_1981_1990
+    years <- 1984:1988
+    output_folder <- bioclim_1984_1988
   } else {
-      years <- 2009:2018
-      output_folder <- bioclim_2009_2018}
+      years <- 2012:2017
+      output_folder <- bioclim_2012_2017}
 
   # masked Chelsa files corresponding to respective time period:
   chelsa_masked_files <- list.files(chelsa_EPSG3035, 

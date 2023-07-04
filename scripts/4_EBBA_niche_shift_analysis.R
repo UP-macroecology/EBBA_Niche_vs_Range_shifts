@@ -26,7 +26,7 @@ library(ade4)
 # ------------------------------ #
 
 # species-specific background (500 km buffer around presences) or whole EBBA area as background:
-bg_spec <- FALSE # set to FALSE for whole EBBA area as environmental background
+bg_spec <- TRUE # set to FALSE for whole EBBA area as environmental background
 
 # paths to data:
 
@@ -44,7 +44,7 @@ plots_dir <- file.path(plots_dir, "niche_dynamics_species", paste0("EBBA_niche_d
 if(!dir.exists(plots_dir)){dir.create(plots_dir, recursive = TRUE)}
 
 # results table:
-results_file <- file.path(data_dir, paste0("EBBA_niche_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"), ".csv"))
+results_file <- file.path(data_dir, paste0("EBBA_niche_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"),"_140623", ".csv"))
 
 
 # ---------------------------- #
@@ -53,7 +53,7 @@ results_file <- file.path(data_dir, paste0("EBBA_niche_shift_results_bg_", ifels
 
 # comparable EBBA cells:
 EBBA_cells <- read_sf(file.path(data_dir, "EBBA_change.shp")) %>% # output of 1_EBBA_prep_data.R
-  select(-species, -Change) %>% 
+  dplyr::select(-species, -Change) %>% 
   distinct(cell50x50, .keep_all = TRUE) # keep geometry; would be the same when using EBBA2
 
 # final species selection:
@@ -89,7 +89,7 @@ if(bg_spec == FALSE){
   
   # EBBA 1:
   # climate data historic period:
-  biovars_hist_rast <- rast(list.files(file.path(bioclim_data_dir, "Bioclim_1981_1990"),
+  biovars_hist_rast <- rast(list.files(file.path(bioclim_data_dir, "Bioclim_1984_1988"),
                                        pattern = "50km.tif$",
                                        full.names = TRUE))
   
@@ -102,7 +102,7 @@ if(bg_spec == FALSE){
   
   # EBBA 2:
   # climate data recent period:
-  biovars_rec_rast <- rast(list.files(file.path(bioclim_data_dir, "Bioclim_2009_2018"),
+  biovars_rec_rast <- rast(list.files(file.path(bioclim_data_dir, "Bioclim_2012_2017"),
                                       pattern = "50km.tif$",
                                       full.names = TRUE))
   
@@ -153,10 +153,10 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
           # climate data:
           # tifs with bioclim variables for historic and recent time period
           # need to be loaded within foreach since SpatRasters and SpatVectors are non-exportable objects
-          biovars_hist_rast <- rast(list.files(file.path(bioclim_data_dir, "Bioclim_1981_1990"),
+          biovars_hist_rast <- rast(list.files(file.path(bioclim_data_dir, "Bioclim_1984_1988"),
                                                pattern = "50km.tif$",
                                                full.names = TRUE))
-          biovars_rec_rast <- rast(list.files(file.path(bioclim_data_dir, "Bioclim_2009_2018"),
+          biovars_rec_rast <- rast(list.files(file.path(bioclim_data_dir, "Bioclim_2012_2017"),
                                               pattern = "50km.tif$",
                                               full.names = TRUE))
           
@@ -164,7 +164,7 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
           niche_shift_spec_df <- data.frame("species" = sel_species[s],
                                             # niche overlap:  
                                             "D" = NA, # Schoener's D
-                                            # results of niche similarity test when testing for niche divergence / niche shift:
+                                            # results of niche similarity test when testing for niche divergence / niche switching:
                                             "shift_p_D_NA" = NA, # NA = non-analogue conditions
                                             "shift_p_E_NA" = NA,
                                             "shift_p_S_NA" = NA,
@@ -228,7 +228,7 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
               vect %>% # convert to terra object
               cbind(terra::extract(biovars_hist_rast, y = .)) %>% # add bioclim data
               as.data.frame %>% 
-              select(-ID)
+              dplyr::select(-ID)
             
             # check:
             #plot(st_geometry(EBBA_cells %>% st_filter(EBBA1_spec_buffer, .pred = st_within)))
@@ -259,7 +259,7 @@ niche_shift_df <- foreach(s = 1:length(sel_species),
               vect %>% # convert to terra object
               cbind(terra::extract(biovars_hist_rast, y = .)) %>% # add bioclim data
               as.data.frame %>% 
-              select(-ID)
+              dplyr::select(-ID)
             
             # check:
             #plot(st_geometry(EBBA_cells %>% st_filter(EBBA2_spec_buffer, .pred = st_within)))

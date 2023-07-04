@@ -27,16 +27,16 @@ library(ade4)
 # ------------------------------ #
 
 # environmental background: presences and absences within 600 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
-bg_spec <- FALSE
+bg_spec <- TRUE
 
 # which historic time period should be used:
-#hist_years <- 1980:1983 # maximum gap between historic and recent time period
-hist_years <- 1995:1998 # similar gap between historic and recent time period as in EBBA analysis
+hist_years <- 1980:1983 # maximum gap between historic and recent time period
+# hist_years <- 1995:1998 # similar gap between historic and recent time period as in EBBA analysis
 
 # paths to data:
 
 # project data:
-#data_dir <- file.path("data", "BBS_analysis)
+#data_dir <- file.path("data", "BBS_analysis")
 data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
 
 # bioclimatic variables:
@@ -156,16 +156,16 @@ niche_shift_df <- foreach(s = 1:length(sel_species_final),
 
                             if(bg_spec){
                               
-                              # environmental background = all presences and true absences within 600 km of presences (Sofaer et al. 2018)
+                              # environmental background = all presences and true absences within 500 km of presences (Sofaer et al. 2018)
                               # -> PCA scores for species presence and absence points
                               
-                              # 600 km buffer around presences:
+                              # 500 km buffer around presences:
                               background_bf <- BBS_hist %>%
                                 filter(species == spec & pres == 1) %>% 
-                                st_buffer(dist = 600000) %>% 
+                                st_buffer(dist = 500000) %>% 
                                 st_union
                               
-                              # species records (presences and true absences) within 600 km of presences:
+                              # species records (presences and true absences) within 500 km of presences:
                               background <- spec_hist %>% 
                                 st_filter(y = background_bf, .predicate = st_within)
                               
@@ -202,16 +202,16 @@ niche_shift_df <- foreach(s = 1:length(sel_species_final),
                             
                             if(bg_spec){
                               
-                              # environmental background = all presences and true absences within 600 km of presences (Sofaer et al. 2018)
+                              # environmental background = all presences and true absences within 500 km of presences (Sofaer et al. 2018)
                               # -> PCA scores for species presence and absence points
                               
-                              # 600 km buffer around presences:
+                              # 500 km buffer around presences:
                               background_bf <- BBS_rec %>%
                                 filter(species == spec & pres == 1) %>% 
-                                st_buffer(dist = 600000) %>% 
+                                st_buffer(dist = 500000) %>% 
                                 st_union
                               
-                              # species records (presences and true absences) within 600 km of presences:
+                              # species records (presences and true absences) within 500 km of presences:
                               background <- spec_rec %>% 
                                 st_filter(y = background_bf, .predicate = st_within)
                               
@@ -378,7 +378,7 @@ niche_shift_df <- foreach(s = 1:length(sel_species_final),
                             # analogue conditions:
                             niche_dyn_A <- ecospat.niche.dyn.index(grid.clim.hist, 
                                                                    grid.clim.rec,
-                                                                   intersection = 0) # analysis performed on intersection of niche space of EBBA1 and EBBA2
+                                                                   intersection = 0) # analysis performed on intersection of niche space of BBS_hist and BBS_rec
                             
                             niche_shift_spec_df$nS_A <- niche_dyn_A$dynamic.index.w['stability']
                             niche_shift_spec_df$nE_A <- niche_dyn_A$dynamic.index.w['expansion']

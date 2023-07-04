@@ -231,7 +231,7 @@ ggplot2::ggplot(world) +
 
 # Chelsa files on datashare:
 chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE, 
-                          pattern = paste0("(", paste(2016:2018, collapse = "|"), ")_V.2.1.tif"))
+                          pattern = paste0("(", paste(2015:2018, collapse = "|"), ")_V.2.1.tif"))
 
 # projected Chelsa files:
 names_proj <- list.files(file.path(chelsa_proj_path, "Chelsa_projected"), full.names = TRUE)
@@ -266,7 +266,7 @@ for(i in 1:length(chelsa_tifs)){
 
 vars <- c("pr", "tas", "tasmin", "tasmax")
 months <- stringr::str_pad(1:12, width = 2, pad = "0")
-years <- 2016:2018
+years <- 2015:2018
 
 # masked Chelsa data:
 chelsa_masked_files <- list.files(chelsa_masked_path, pattern = "tif$", full.names = TRUE)
@@ -354,6 +354,9 @@ contUS_rast_poly <- rast(file.path(data_dir, "contUS_50km.tif")) %>%
 # files of rasterized and projected Birdlife ranges:
 BL_range_tifs
 
+# data frame for PCA eigenvalues
+BBS_global_niche_PCA <- data.frame(species=species_filtered,PCA_percent=NA)
+
 # loop over species:
 stability_df <- foreach(i = 1:length(species_filtered),
                         .combine = rbind,
@@ -395,6 +398,9 @@ stability_df <- foreach(i = 1:length(species_filtered),
                           pca.env <- dudi.pca(rbind(contUS_vars_df, BL_vars_df)[, paste0("bio", 1:19)],
                                               scannf = FALSE,
                                               nf = 2) # number of axes
+                          
+                          # How much climate variation explained by first two axes:
+                          BBS_global_niche_PCA[i,2] = sum(pca.env$eig[1:2]/sum( pca.env$eig))
                           
                           # predict the scores on the PCA axes:
                           # occurrences within conterminous US used as z1 (corresponds to native distribution in tutorials)
@@ -459,6 +465,10 @@ stability_df %>%
 write.csv(stability_df, 
           file = file.path(data_dir, "species_stability_contUS_BL22.csv"),
           row.names = FALSE)
+
+write.csv(BBS_global_niche_PCA, 
+          file = file = file.path(data_dir, "BBS_global_niche_PCA.csv"), 
+          row.names=F)
 
 # plots regarding stability:
 plot(sort(stability_df$stability, decreasing = TRUE),

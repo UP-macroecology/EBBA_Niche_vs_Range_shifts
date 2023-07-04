@@ -17,7 +17,7 @@ data_dir <- file.path("data", "EBBA_analysis")
 plots_dir <- file.path("plots")
 
 ## species-specific background or whole EBBA area as background:
-bg_spec <- FALSE # set to FALSE for whole EBBA area as environmental background
+bg_spec <- TRUE # set to FALSE for whole EBBA area as environmental background
 
 # ---------------------------- #
 #          Load data:       ####
@@ -41,7 +41,7 @@ EBBA_cells <- read_sf(file.path(data_dir, "EBBA_change.shp")) %>% # output of 1_
   distinct(cell50x50, .keep_all = TRUE) # keep geometry; same when using EBBA2
 
 # comparable EBBA cells (grid):
-# EBBA_change_grid <- read_sf(file.path(datashare_EBCC, "EBBA_change", "ebba2_grid50x50_change_v1", "ebba2_grid50x50_change_v1.shp")) %>% 
+# EBBA_change_grid <- read_sf(file.path(datashare_EBCC, "EBBA_change", "ebba2_grid50x50_change_v1.shp")) %>% 
 #   rename(cell50x50 = cell50x50_)
 EBBA_change_grid <- read_sf(file.path("data", "ebba2_grid50x50_change_v1", "ebba2_grid50x50_change_v1.shp")) %>% # EPSG:3035   
   rename(cell50x50 = cell50x50_)
@@ -63,7 +63,7 @@ range_results <- read.csv(file.path(data_dir, paste0("EBBA_range_shift_results_b
 # EBBA 1:
 
 # climate data historic period:
-biovars_hist_rast <- rast(list.files(file.path(data_dir, "Bioclim_1981_1990"),
+biovars_hist_rast <- rast(list.files(file.path(data_dir, "Bioclim_1984_1988"),
                                      pattern = "50km.tif$",
                                      full.names = TRUE))
 # join EBBA cells and corresponding climate data:
@@ -76,7 +76,7 @@ EBBA1_climate_data <- EBBA_cells %>%
 # EBBA 2:
 
 # climate data recent period:
-biovars_rec_rast <- rast(list.files(file.path(data_dir, "Bioclim_2009_2018"),
+biovars_rec_rast <- rast(list.files(file.path(data_dir, "Bioclim_2012_2017"),
                                     pattern = "50km.tif$",
                                     full.names = TRUE))
 # join EBBA cells and corresponding climate data:
@@ -282,22 +282,22 @@ range_test_sign <- range_results %>%
   mutate(across(everything(), ~ round(.x/length(sel_species)*100, 2)))
 
 # species (%) with significantly higher dynamics than by chance:
-spec_sign_higher <- c("NA", # niche abandonment
+spec_sign_higher <- c("", # niche abandonment
                       niche_test_sign$shift_p_U_A_n_sig, # niche unfilling
                       niche_test_sign$cons_p_S_A_n_sig, # niche stability
                       niche_test_sign$shift_p_E_A_n_sig, # niche expansion
-                      "NA", # niche pioneering,
+                      "", # niche pioneering,
                       range_test_sign$shift_p_U_A_n_sig, # range unfilling
                       range_test_sign$cons_p_S_A_n_sig, # range stabiliy
                       range_test_sign$shift_p_E_A_n_sig # range expansion
 )
 
 # species (%) with significantly lower dynamics than by chance:
-spec_sign_lower <- c("NA", # niche abandonment
+spec_sign_lower <- c("", # niche abandonment
                       niche_test_sign$cons_p_U_A_n_sig, # niche unfilling
                       niche_test_sign$shift_p_S_A_n_sig, # niche stability
                       niche_test_sign$cons_p_E_A_n_sig, # niche expansion
-                      "NA", # niche pioneering,
+                      "", # niche pioneering,
                       range_test_sign$cons_p_U_A_n_sig, # range unfilling
                       range_test_sign$shift_p_S_A_n_sig, # range stabiliy
                       range_test_sign$cons_p_E_A_n_sig # range expansion
@@ -318,7 +318,7 @@ labelsdat <- tibble(category = c(rep("niche", 5), rep("range", 3)),
                     sign_higher = spec_sign_higher,
                     sign_lower = spec_sign_lower,
                     ypos_higher = 110,
-                    ypos_lower = -15)
+                    ypos_lower = -22)
 
 # plot:
 p <- ggplot(niche_range_df, aes(x = category, y = value*100, fill = metric)) + # aes given inside ggplot() necessary for geom_text
@@ -327,24 +327,24 @@ p <- ggplot(niche_range_df, aes(x = category, y = value*100, fill = metric)) + #
   #facet_grid(~ category, scales = "free") +
   theme_bw() +
   theme(panel.grid = element_blank()) +
-  ylab("dynamics [%]") +
+  ylab("Metrics [%]") +
   xlab("") +
-  scale_fill_viridis_d("dynamics") +
-  scale_y_continuous(breaks = seq(0, 100, 20), expand = expansion(add = 5)) +
-  annotate(geom = "text", label = "Species (%) with significantly higher dynamics than by chance:", 
-           x = 0.5, y = 115, hjust = 0, vjust = 0, size = 3) + # xx
+  scale_fill_viridis_d("Metrics") +
+  scale_y_continuous(breaks = seq(0, 100, 20), expand = expansion(add = 10)) +
+  annotate(geom = "text", label = "Species (%) with significantly higher metrics than expected by chance:", 
+           x = 0.5, y = 118, hjust = 0, vjust = 0, size = 3) + # xx
   geom_text(data = labelsdat, aes(label = spec_sign_higher, y = ypos_higher),
             position = position_dodge2(width = 0.9, preserve = "single"), size = 3) +
   geom_hline(yintercept = 105) +
   geom_hline(yintercept = -5) +
-  annotate(geom = "text", label = "Species (%) with significantly lower dynamics than by chance:", 
-           x = 0.5, y = -10, hjust = 0, vjust = 0, size = 3) +
+  annotate(geom = "text", label = "Species (%) with significantly lower metrics than expected by chance:", 
+           x = 0.5, y = -14, hjust = 0, vjust = 0, size = 3) +
   geom_text(data = labelsdat, aes(label = spec_sign_lower, y = ypos_lower),
             position = position_dodge2(width = 0.9, preserve = "single"), size = 3)
 
 # save plot:
 pdf(file = file.path(plots_dir, "dynamics_boxplots", paste0("EBBA_boxplot_dynamics_bg_", ifelse(bg_spec, "spec", "EBBA"), ".pdf")),
-    height = 5, width = 8)
+    height = 3, width = 8)
 p
 dev.off()
 
@@ -357,35 +357,72 @@ metrics_df <- range_results %>%
   select(range_stability_std, range_unfilling_std, range_expansion_std,
          niche_stability_std, niche_unfilling_std, niche_expansion_std)
 
+cor1 <- with(metrics_df,cor.test(range_expansion_std, niche_unfilling_std))
+xrange <- range(metrics_df$niche_unfilling_std)
+yrange <- range(metrics_df$range_expansion_std)
 p1 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_unfilling_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche U") + ylab("range E")
+  theme_bw() + xlab("niche U") + ylab("range E") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor1$estimate,2),ifelse(cor1$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+cor2 <- with(metrics_df,cor.test(range_expansion_std, niche_stability_std))
+xrange <- range(metrics_df$niche_stability_std)
+yrange <- range(metrics_df$range_expansion_std)
 p2 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_stability_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche S") + ylab("range E")
+  theme_bw() + xlab("niche S") + ylab("range E") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor2$estimate,2),ifelse(cor2$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+cor3 <- with(metrics_df,cor.test(range_expansion_std, niche_expansion_std))
+xrange <- range(metrics_df$niche_expansion_std)
+yrange <- range(metrics_df$range_expansion_std)
 p3 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_expansion_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche E") + ylab("range E")
+  theme_bw() + xlab("niche E") + ylab("range E") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor3$estimate,2),ifelse(cor3$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
 
+cor4 <- with(metrics_df,cor.test(range_stability_std, niche_unfilling_std))
+xrange <- range(metrics_df$niche_unfilling_std)
+yrange <- range(metrics_df$range_stability_std)
 p4 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_unfilling_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche U") + ylab("range S")
+  theme_bw() + xlab("niche U") + ylab("range S") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor4$estimate,2),ifelse(cor4$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+cor5 <- with(metrics_df,cor.test(range_stability_std, niche_stability_std))
+xrange <- range(metrics_df$niche_stability_std)
+yrange <- range(metrics_df$range_stability_std)
 p5 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_stability_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche S") + ylab("range S")
+  theme_bw() + xlab("niche S") + ylab("range S") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.95), label = paste0("r=",round(cor5$estimate,2),ifelse(cor5$p.value<0.05,"*","")), vjust=0, hjust=1, color="red")
+cor6 <- with(metrics_df,cor.test(range_stability_std, niche_expansion_std))
+xrange <- range(metrics_df$niche_expansion_std)
+yrange <- range(metrics_df$range_stability_std)
 p6 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_expansion_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche E") + ylab("range S")
+  theme_bw() + xlab("niche E") + ylab("range S") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor6$estimate,2),ifelse(cor6$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
 
+cor7 <- with(metrics_df,cor.test(range_unfilling_std, niche_unfilling_std))
+xrange <- range(metrics_df$niche_unfilling_std)
+yrange <- range(metrics_df$range_unfilling_std)
 p7 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_unfilling_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche U") + ylab("range U")
+  theme_bw() + xlab("niche U") + ylab("range U") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor7$estimate,2),ifelse(cor7$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+cor8 <- with(metrics_df,cor.test(range_unfilling_std, niche_stability_std))
+xrange <- range(metrics_df$niche_stability_std)
+yrange <- range(metrics_df$range_unfilling_std)
 p8 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_stability_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche S") + ylab("range U")
+  theme_bw() + xlab("niche S") + ylab("range U") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor8$estimate,2),ifelse(cor8$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+cor9 <- with(metrics_df,cor.test(range_unfilling_std, niche_expansion_std))
+xrange <- range(metrics_df$niche_expansion_std)
+yrange <- range(metrics_df$range_unfilling_std)
 p9 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_expansion_std)) +
   geom_point() + geom_smooth(method = "lm") +
-  theme_bw() + xlab("niche E") + ylab("range U")
+  theme_bw() + xlab("niche E") + ylab("range U") +
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor9$estimate,2),ifelse(cor9$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+
 
 
 pdf(file = file.path(plots_dir, "dynamics_correlations", paste0("EBBA_correlation_dynamics_bg_", 
@@ -433,6 +470,7 @@ dir_shift_hist <- ggplot(range_results, aes(x = shift_direction)) +
   scale_x_continuous(limits = c(-180, 180),
                      breaks = seq(-180, 180, by = 30),
                      minor_breaks = seq(-180, 180, by = 15)) +
+  ylab("Number of species") +                   
   xlab("") +
   theme_minimal()
 
@@ -451,6 +489,20 @@ dev.off()
 pdf(file = file.path(plots_dir, "range_shift_direction", "EBBA_rshift_direction_histogram.pdf"),
     height = 5, width = 6)
 dir_shift_hist
+dev.off()
+
+# combine range shift and direction:
+p_climate_change <- plot_grid(dir_shift_p2, dir_shift_hist,
+                              labels = "AUTO",
+                              align = "h",
+                              nrow = 1,
+                              axis = "tblr",
+                              rel_widths = c(1.5, 1.5, 1.5),
+                              rel_heights = c(0.25, 5, 5))
+
+pdf(file = file.path(plots_dir, "range_shift_direction", "EBBA_rshift_direction.pdf"),
+    height = 3, width = 8)
+p_climate_change
 dev.off()
 
 
@@ -478,14 +530,14 @@ spec_niche_sign_low_unf <- niche_results %>%
 
 ## differences in bioclim variable values between historic and recent time period: ----
 
-bioclim1_hist <- rast(file.path(data_dir, "Bioclim_1981_1990", "CHELSA_bio1_1981_1990_50km.tif"))
-bioclim1_rec <- rast(file.path(data_dir, "Bioclim_2009_2018", "CHELSA_bio1_2009_2018_50km.tif"))
+bioclim1_hist <- rast(file.path(data_dir, "Bioclim_1984_1988", "CHELSA_bio1_1984_1988_50km.tif"))
+bioclim1_rec <- rast(file.path(data_dir, "Bioclim_2012_2017", "CHELSA_bio1_2012_2017_50km.tif"))
 change_rast <- (bioclim1_hist - bioclim1_rec)/bioclim1_hist * 100 # change in percentage compared to historic time period
 
-biovars_hist_rast <- rast(list.files(file.path(data_dir, "Bioclim_1981_1990"),
+biovars_hist_rast <- rast(list.files(file.path(data_dir, "Bioclim_1984_1988"),
                                      pattern = "50km.tif$",
                                      full.names = TRUE))
-biovars_rec_rast <- rast(list.files(file.path(data_dir, "Bioclim_2009_2018"),
+biovars_rec_rast <- rast(list.files(file.path(data_dir, "Bioclim_2012_2017"),
                                     pattern = "50km.tif$",
                                     full.names = TRUE))
 change_rast <- (biovars_hist_rast - biovars_rec_rast)/biovars_hist_rast * 100  # change in percent

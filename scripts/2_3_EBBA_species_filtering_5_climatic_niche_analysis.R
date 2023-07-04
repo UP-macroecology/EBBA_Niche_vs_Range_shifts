@@ -28,6 +28,7 @@ library(dismo) # requires spatial data formats of raster package
 # project data:
 data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
 #data_dir <- file.path("data", "EBBA_analysis")
+data_dir_server <- file.path("/mnt", "ibb_share", "zurell_transfer","Schifferle_EBBA_BBS_niche_vs_range_shift", "data", "EBBA_analysis")
 
 # EBBA data:
 datashare_EBCC <- file.path("/mnt", "ibb_share", "zurell", "biodat", "distribution", "EBCC")
@@ -105,7 +106,7 @@ foreach(s = 1:length(species_filtered),
           gdalUtilities::ogr2ogr(src_datasource_name = file.path(datashare_Birdlife, "BOTW.gdb"),
                                  layer = "All_Species",
                                  where = paste0("sci_name = '", spec, "' AND (SEASONAL = '1' OR SEASONAL = '2') AND PRESENCE = '1'"), # SEASONAL = 1: resident throughout the year, SEASONAL = 2: breeding season
-                                 dst_datasource_name = file.path(data_dir, "Birdlife_ranges_EBBA", "Shapefiles_2022", paste0(species_filtered[s], ".shp")),
+                                 dst_datasource_name = file.path(data_dir_server, "Birdlife_ranges_EBBA", "Shapefiles_2022", paste0(species_filtered[s], ".shp")),
                                  overwrite = TRUE)
         }
 
@@ -188,7 +189,7 @@ gdalUtilities::gdalwarp(srcfile = file.path(data_dir, "EBBA2.tif"),
 ## mask: overlay Birdlife ranges of all species and EBBA grid: -----------------
 
 # list rasters:
-BL_range_tifs <- list.files(file.path(data_dir, "Birdlife_ranges_EBBA", "Raster_2022"), full.names = TRUE, pattern = "_50km.tif$")
+BL_range_tifs <- list.files(file.path(data_dir_server, "Birdlife_ranges_EBBA", "Raster_2022"), full.names = TRUE, pattern = "_50km.tif$")
 
 # Birdlife ranges of all species:
 ranges <- lapply(BL_range_tifs, rast)
@@ -251,7 +252,7 @@ chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE, pattern = paste0
 names_proj <- list.files(file.path(chelsa_proj_path, "Chelsa_projected"), full.names = TRUE)
 
 # folder to store masked CHELSA data:
-chelsa_masked_path <- file.path(data_dir, "Chelsa", "Chelsa_masked_global")
+chelsa_masked_path <- file.path(chelsa_proj_path, "Chelsa_masked_global")
 # create folder if it doesn't exist yet:
 if(!dir.exists(chelsa_masked_path)){dir.create(chelsa_masked_path, recursive = TRUE)}
 
@@ -280,7 +281,7 @@ for(i in 1:length(chelsa_tifs)){
 
 vars <- c("pr", "tas", "tasmin", "tasmax")
 months <- stringr::str_pad(1:12, width = 2, pad = "0")
-years <- 2009:2018
+years <- 2012:2017
 
 # files masked Chelsa data:
 chelsa_masked_files <- list.files(chelsa_masked_path, pattern = "tif$", full.names = TRUE)
@@ -325,7 +326,7 @@ biovars_rast <- rast(biovars) # convert to terra object
 
 # save tifs:
 
-bioclim_folder <- file.path(data_dir, "Bioclim_global_2009_2018")
+bioclim_folder <- file.path(chelsa_proj_path, "Bioclim_global_2012_2017")
 if(!dir.exists(bioclim_folder)){dir.create(bioclim_folder, recursive = TRUE)}
 
 writeRaster(biovars_rast,
@@ -341,10 +342,13 @@ writeRaster(biovars_rast,
 # calculate stability index: how much of the species global climatic niche is covered in Europe
 
 # read comparable EBBA2 data:
-EBBA2_comp_sf <- st_read(file.path(data_dir, "EBBA2_prelim_comparable_cells.shp")) # output of 1_EBBA_prep_data.R
+EBBA2_comp_sf <- st_read(file.path(data_dir_server, "EBBA2_prelim_comparable_cells.shp")) # output of 1_EBBA_prep_data.R
 
 # files of rasterized and projected Birdlife ranges:
 BL_range_tifs
+
+# data frame for PCA eigenvalues
+EBBA_global_niche_PCA <- data.frame(species=species_filtered,PCA_percent=NA)
 
 # loop over species:
 stability_df <- foreach(i = 1:length(species_filtered),
@@ -392,6 +396,9 @@ stability_df <- foreach(i = 1:length(species_filtered),
                             pca.env <- dudi.pca(rbind(EBBA2_spec_vars_df, BL_spec_vars_df)[, paste0("bio", 1:19)],
                                                 scannf = FALSE,
                                                 nf = 2) # number of axes
+                            
+                            # How much climate variation explained by first two axes:
+                            EBBA_global_niche_PCA[i,2] = sum(pca.env$eig[1:2]/sum( pca.env$eig))
                             
                             # predict the scores on the PCA axes:
                             # EBBA2 used as z1 (corresponds to native distribution in tutorials)
@@ -446,8 +453,13 @@ stability_df <- foreach(i = 1:length(species_filtered),
 
 # save species stability values :
 write.csv(stability_df, 
-          file = file.path(data_dir, "species_stability_EBBA2_BL22_030423.csv"),
+          file = file.path(data_dir, "species_stability_EBBA2_BL22_140623.csv"),
           row.names = FALSE)
+#save PCA eigen value sums:
+write.csv(EBBA_global_niche_PCA, 
+          file = file.path(data_dir, "EBBA_global_niche_PCA.csv"), 
+          row.names = FALSE)
+
 
 # plot stability:
 plot(sort(stability_df$stability, decreasing = TRUE),

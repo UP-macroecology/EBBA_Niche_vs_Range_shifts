@@ -35,7 +35,7 @@ library(ade4)
 # ------------------------------ #
 
 # species-specific background (500 km buffer around presences) or whole EBBA area as background:
-bg_spec <- FALSE # set to FALSE for whole EBBA area as environmental background
+bg_spec <- TRUE # set to FALSE for whole EBBA area as environmental background
 
 # paths to data:
 
