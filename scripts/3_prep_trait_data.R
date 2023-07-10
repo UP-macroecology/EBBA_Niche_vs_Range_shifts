@@ -49,7 +49,7 @@ if(dataset == "EBBA"){
   
   # final species selection:
   load(file = file.path(data_dir, "EBBA1_EBBA2_prep_steps1-4_final.RData")) # output of 2_1_EBBA_species_filtering_1-4.R
-  EBBA_species_final <- sort(unique(EBBA1_prep$species))
+  EBBA_species_final <- sort(EBBA1_prep$species)
 
   # AVONET data for these species:
   EBBA_avonet <- subset(avonet_BL, avonet_BL$Species1 %in% EBBA_species_final)
@@ -60,7 +60,7 @@ if(dataset == "EBBA"){
 } else {
   
   # selected species:
-  BBS_species_final <- read.csv(file = file.path(data_dir, "species_stability_contUS_BL22.csv")) %>% 
+  BBS_species_final <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22_060723.csv")) %>% 
     filter(stability >= 0.5) %>% 
     pull(species)
   
@@ -136,7 +136,7 @@ if(dataset == "EBBA"){
   
   # species left after filtering step 5:
   load(file = file.path(data_dir, "EBBA1_EBBA2_prep_steps1-4_final.RData")) # output of 2_1_EBBA_species_filtering_1-4.R
-  species_filtered <- sort(sub(" ", "_", unique(EBBA1_prep$species)))
+  species_filtered <- sort(sub(" ", "_", EBBA1_prep$species))
   
   # files of rasterized and projected Birdlife ranges:
   BL_range_tifs <- list.files(file.path(data_dir, "Birdlife_ranges_EBBA", "Raster_2022"), full.names = TRUE, pattern = "_50km.tif$")
@@ -155,7 +155,7 @@ if(dataset == "BBS"){
   if(!dir.exists(plots_dir)){dir.create(plots_dir, recursive = TRUE)}
   
   # selected species (both versions of historic time period):
-  species_filtered <- read.csv(file = file.path(data_dir, "species_stability_contUS_BL22.csv")) %>% 
+  species_filtered <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22_060723.csv")) %>% 
     filter(stability >= 0.5) %>% 
     pull(species) %>%
     sub(" ", "_", .)
@@ -247,7 +247,7 @@ niche_breadth_df <- foreach(i = 1:length(species_filtered),
                             }
 
 # save resulting data frame:
-write.csv(niche_breadth_df, file = file.path(data_dir, paste0(dataset, "_niche_breadth.csv")), row.names = FALSE)
+write.csv(niche_breadth_df, file = file.path(data_dir, paste0(dataset, "_niche_breadth_060723.csv")), row.names = FALSE)
 
 
 ## explorations: ---------------------------------------------------------------

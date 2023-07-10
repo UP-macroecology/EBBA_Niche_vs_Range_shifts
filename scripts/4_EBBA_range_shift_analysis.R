@@ -35,7 +35,7 @@ library(ade4)
 # ------------------------------ #
 
 # species-specific background (500 km buffer around presences) or whole EBBA area as background:
-bg_spec <- TRUE # set to FALSE for whole EBBA area as environmental background
+bg_spec <- FALSE # set to FALSE for whole EBBA area as environmental background
 
 # paths to data:
 
@@ -198,7 +198,7 @@ EBBA_cell_coords <- as.data.frame(st_coordinates(EBBA_cells))
 # loop over species:
 
 # register cores for parallel computation:
-registerDoParallel(cores = 4)
+registerDoParallel(cores = 15)
 #getDoParWorkers() # check registered number of cores
 
 range_ecospat_df <- foreach(s = 1:length(sel_species),

@@ -27,20 +27,26 @@ hist_years <- 1980:1983 # maximum gap between historic and recent time period
 # environmental background: presences and absences within 500 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
 bg_spec <- TRUE
 
-niche_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_niche_shift_results_bg_spec_hist81-83_170623.csv"))
-range_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_range_shift_results_bg_spec_hist81-83.csv"))
+#niche_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_niche_shift_results_bg_spec_hist81-83_170623.csv"))
+#range_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_range_shift_results_bg_spec_hist81-83.csv"))
+niche_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_niche_shift_results_bg_spec_hist81-83_070723.csv"))
+range_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_range_shift_results_bg_spec_hist81-83_070723.csv"))
 sel_species_BBS <- niche_results_BBS$species
 
-niche_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_niche_shift_results_bg_spec_140623.csv"))
-range_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_range_shift_results_bg_spec.csv"))
+# niche_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_niche_shift_results_bg_spec_140623.csv"))
+# range_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_range_shift_results_bg_spec.csv"))
+niche_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_niche_shift_results_bg_spec_070723.csv"))
+range_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_range_shift_results_bg_spec_070723.csv"))
 sel_species_EBBA <- niche_results_EBBA$species
 
 
 #################################
 # Climatic niche coverage
 
-stability_BBS <- read.csv(file.path(data_dir_BBS,"species_stability_contUS_BL22_160623.csv"))
-stability_EBBA <- read.csv(file.path(data_dir_EBBA,"species_stability_EBBA2_BL22_140623.csv"))
+#stability_BBS <- read.csv(file.path(data_dir_BBS,"species_stability_contUS_BL22_160623.csv"))
+#stability_EBBA <- read.csv(file.path(data_dir_EBBA,"species_stability_EBBA2_BL22_140623.csv"))
+stability_BBS <- read.csv(file.path(data_dir_BBS,"BBS_stability_PCA_contUS_BL22_060723.csv"))
+stability_EBBA <- read.csv(file.path(data_dir_EBBA,"species_stability_EBBA2_BL22_060723.csv"))
 
 stab_df <- data.frame(stability=c(stability_EBBA$stability, stability_BBS$stability),
                       Region=c(rep("Europe",nrow(stability_EBBA)),rep("North America",nrow(stability_BBS))))

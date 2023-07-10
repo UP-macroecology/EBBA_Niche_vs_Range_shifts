@@ -25,16 +25,16 @@ library(dismo) # requires spatial data formats of raster package
 # ------------------------------ #
 
 # project data:
-#data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
-data_dir <- file.path("data", "BBS_analysis")
+data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
+#data_dir <- file.path("data", "BBS_analysis")
 
 # Birdlife range maps:
-#datashare_Birdlife <- file.path("/mnt", "ibb_share", "zurell", "biodat", "distribution", "Birdlife", "BOTW_2022")
-datashare_Birdlife <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data", "biodat", "distribution", "Birdlife", "BOTW_2022")
+datashare_Birdlife <- file.path("/mnt", "ibb_share", "zurell", "biodat", "distribution", "Birdlife", "BOTW_2022")
+#datashare_Birdlife <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data", "biodat", "distribution", "Birdlife", "BOTW_2022")
 
 # Chelsa data:
-#datashare_Chelsa <- file.path("/mnt", "ibb_share", "zurell", "envidat", "biophysical", "CHELSA_V2", "global") 
-datashare_Chelsa <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data","envidat","biophysical","CHELSA_V2","global") 
+datashare_Chelsa <- file.path("/mnt", "ibb_share", "zurell", "envidat", "biophysical", "CHELSA_V2", "global") 
+#datashare_Chelsa <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data","envidat","biophysical","CHELSA_V2","global") 
 
 # folder with projected CHELSA data (output of 2_2_species_filtering_5_project_Chelsa.R):
 chelsa_proj_path <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA")
@@ -46,10 +46,10 @@ if(!dir.exists(US_BL_plot_dir)){dir.create(US_BL_plot_dir, recursive = TRUE)}
 
 # load species left after filter steps 1-4, for both versions of historic time period:
 load(file = file.path(data_dir, "BBS_prep_steps1-4_hist81-83.RData")) # output of 2_1_BBS_species_filtering_1-4.R
-species_filtered_V1 <- sort(sub(" ", "_", unique(hist_prep_df$species))) # 212
-load(file = file.path(data_dir, "BBS_prep_steps1-4_hist96-98.RData")) # output of 2_1_BBS_species_filtering_1-4.R
-species_filtered_V2 <- sort(sub(" ", "_", unique(hist_prep_df$species))) # 312
-species_filtered <- sort(unique(c(species_filtered_V1, species_filtered_V2))) # 313
+species_filtered_V1 <- sort(sub(" ", "_", hist_prep_df$species)) # 212
+load(file = file.path(data_dir, "BBS_prep_steps1-4_hist88-90.RData")) # output of 2_1_BBS_species_filtering_1-4.R
+species_filtered_V2 <- sort(sub(" ", "_", hist_prep_df$species)) # 264
+species_filtered <- sort(unique(c(species_filtered_V1, species_filtered_V2))) # 264
 
 # register cores for parallel computation:
 registerDoParallel(cores = 2)
@@ -63,7 +63,7 @@ registerDoParallel(cores = 2)
 
 ## extract shapefiles from Birdlife 2022 geodatabase: --------------------------
 
-# only parts of range where species is considered extant (presence = 1) and which 
+# only parts of range where species is considered extant (presence = 1) and which
 # is used either throughout the whole year (seasonal = 1) or during the breeding season (seasonal = 2)
 
 # account for taxonomic changes between BBS and BL range maps:
@@ -101,13 +101,13 @@ if(!dir.exists(file.path(data_dir, "Birdlife_ranges_BBS", "Shapefiles_2022"))){d
 
 # shapefile extraction:
 foreach(s = 1:length(species_filtered),
-        .packages = c("gdalUtilities"), 
+        .packages = c("gdalUtilities"),
         .verbose = TRUE,
         .errorhandling = "remove",
         .inorder = FALSE) %dopar% {
-          
+
           spec <- sub("_", " ", species_filtered[s])
-          
+
           # adjust species name if BL uses other taxonomy than BBS:
           if(spec %in% spec_name_change_df$BBS_name){
             spec <- spec_name_change_df$BL_name[which(spec_name_change_df$BBS_name == spec)]
@@ -123,24 +123,24 @@ foreach(s = 1:length(species_filtered),
 
 ## rasterize and project Birdlife shapefiles: ----------------------------------
 
-# for each species: convert Birdlife range polygons to raster, 
+# for each species: convert Birdlife range polygons to raster,
 # project raster and change resolution to 50 km (same as EBBA)
 
 # global equal area projection (Interrupted Goode Homolosine)
 # used by SoilGrids (Homolosine projection applied to the WGS84 datum)
 # from: https://www.isric.org/explore/soilgrids/faq-soilgrids#How_can_I_use_the_Homolosine_projection
-homolosine <- 'PROJCS["Homolosine", 
-                     GEOGCS["WGS 84", 
-                            DATUM["WGS_1984", 
-                                  SPHEROID["WGS 84",6378137,298.257223563, 
-                                           AUTHORITY["EPSG","7030"]], 
-                                  AUTHORITY["EPSG","6326"]], 
-                            PRIMEM["Greenwich",0, 
-                                   AUTHORITY["EPSG","8901"]], 
-                            UNIT["degree",0.0174532925199433, 
-                                 AUTHORITY["EPSG","9122"]], 
-                            AUTHORITY["EPSG","4326"]], 
-                     PROJECTION["Interrupted_Goode_Homolosine"], 
+homolosine <- 'PROJCS["Homolosine",
+                     GEOGCS["WGS 84",
+                            DATUM["WGS_1984",
+                                  SPHEROID["WGS 84",6378137,298.257223563,
+                                           AUTHORITY["EPSG","7030"]],
+                                  AUTHORITY["EPSG","6326"]],
+                            PRIMEM["Greenwich",0,
+                                   AUTHORITY["EPSG","8901"]],
+                            UNIT["degree",0.0174532925199433,
+                                 AUTHORITY["EPSG","9122"]],
+                            AUTHORITY["EPSG","4326"]],
+                     PROJECTION["Interrupted_Goode_Homolosine"],
                      UNIT["Meter",1]]'
 
 # shapefiles:
@@ -151,20 +151,20 @@ if(!dir.exists(file.path(data_dir, "Birdlife_ranges_BBS", "Raster_2022"))){dir.c
 
 # calculate rasters:
 foreach(i = 1:length(species_filtered),
-        .packages = c("gdalUtilities"), 
+        .packages = c("gdalUtilities"),
         .verbose = TRUE,
         .errorhandling = "remove",
         .inorder = FALSE) %dopar% {
-          
+
           # rasterize polygon:
           gdalUtilities::gdal_rasterize(src_datasource = grep(pattern = species_filtered[i], BL_range_shps, value = TRUE),
                                         dst_filename = file.path(data_dir, "Birdlife_ranges_BBS", "Raster_2022", paste0(species_filtered[i], "_WGS84.tif")),
                                         burn = 1,
                                         tr = c(0.1, 0.1), # target resolution in degrees (same unit as src_datasource)
                                         a_nodata = -99999) # value for cells with missing data
-          
+
           # project and change resolution to 50 km:
-          gdalUtilities::gdalwarp(srcfile = file.path(data_dir, "Birdlife_ranges_BBS", "Raster_2022", paste0(species_filtered[i], "_WGS84.tif")), 
+          gdalUtilities::gdalwarp(srcfile = file.path(data_dir, "Birdlife_ranges_BBS", "Raster_2022", paste0(species_filtered[i], "_WGS84.tif")),
                                   dstfile = file.path(data_dir, "Birdlife_ranges_BBS", "Raster_2022", paste0(species_filtered[i], "_50km.tif")),
                                   overwrite = TRUE,
                                   tr = c(50000, 50000), # target resolution in meters (same as unit of target srs)
@@ -188,18 +188,18 @@ ranges <- lapply(BL_range_tifs, rast)
 # (resampling aligns raster origins, necessary for masking)
 
 # in case of fatal R errors while merging all rasters in one step, merge in multiple steps:
-ranges_combined1 <- do.call(terra::merge, ranges[1:200]) %>% 
+ranges_combined1 <- do.call(terra::merge, ranges[1:200]) %>%
   buffer(width = 100000) %>% # Warning: "[merge] rasters did not align and were resampled" -> fine, aligns ranges of different species
   resample(y = rast(file.path(data_dir, "Chelsa", "CHELSA_tasmin_11_2014_V.2.1_50km.tif")), # projected Chelsa raster as template, output of 2_2_species_filtering_5_project_Chelsa.R
-           method = "near") # 
-ranges_combined2 <- do.call(terra::merge, ranges[201:312]) %>% 
+           method = "near") #
+ranges_combined2 <- do.call(terra::merge, ranges[201:312]) %>%
   buffer(width = 100000) %>%
   resample(y = rast(file.path(data_dir, "Chelsa", "CHELSA_tasmin_11_2014_V.2.1_50km.tif")),
            method = "near")
 ranges_combined <- do.call(terra::merge, list(ranges_combined1,ranges_combined2))
 
 # save mask:
-writeRaster(ranges_combined, 
+writeRaster(ranges_combined,
             filename = file.path(data_dir, "BBS_Birdlife_ranges_mask.tif"),
             overwrite = TRUE, NAflag = FALSE)
 
@@ -234,10 +234,10 @@ chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE,
                           pattern = paste0("(", paste(2015:2018, collapse = "|"), ")_V.2.1.tif"))
 
 # projected Chelsa files:
-names_proj <- list.files(file.path(chelsa_proj_path, "Chelsa_projected"), full.names = TRUE)
+names_proj <- paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "\\.tif")})), "_50km.tif")
 
 # folder to store masked Chelsa data:
-chelsa_masked_path <- file.path(data_dir, "Chelsa", "Chelsa_masked_global")
+chelsa_masked_path <- file.path(data_dir, "Chelsa", "Chelsa_masked_global_BBS")
 # create folder if it doesn't exist yet:
 if(!dir.exists(chelsa_masked_path)){dir.create(chelsa_masked_path, recursive = TRUE)}
 
@@ -253,7 +253,7 @@ for(i in 1:length(chelsa_tifs)){
   
   print(i)
   
-  names_proj[i] %>%
+  file.path(chelsa_proj_path, "Chelsa_projected", names_proj[i]) %>%
     rast %>%
     terra::mask(mask = ranges_mask) %>%
     terra::writeRaster(names_masked[i], overwrite = TRUE)
@@ -296,7 +296,8 @@ for(j in as.numeric(months)){
     mean
   
   # calculate tasmax mean for the current month (across all years)
-  tasmax_mean[[j]] <- chelsa_masked_files[which(grepl(paste0("tasmax_", months[j]), chelsa_masked_files))] %>% 
+  tasmax_mean[[j]] <- chelsa_masked_files[which(grepl(paste0("tasmax_", months[j]), 
+                                                      chelsa_masked_files))] %>% 
     stack %>% 
     mean
 }
@@ -306,7 +307,7 @@ biovars <- dismo::biovars(prec = pr_mean,
                           tmin = tasmin_mean, 
                           tmax = tasmax_mean)
 
-biovars_rast <- rast(biovars) # convert to terra object
+biovars_rast <- terra::rast(biovars) # convert to terra object
 
 # save tifs:
 bioclim_folder <- file.path(data_dir, paste0("Bioclim_global_", min(years), "_", max(years)))
@@ -355,7 +356,7 @@ contUS_rast_poly <- rast(file.path(data_dir, "contUS_50km.tif")) %>%
 BL_range_tifs
 
 # data frame for PCA eigenvalues
-BBS_global_niche_PCA <- data.frame(species=species_filtered,PCA_percent=NA)
+BBS_global_niche_PCA <- data.frame(species=species_filtered, PCA_percent=NA)
 
 # loop over species:
 stability_df <- foreach(i = 1:length(species_filtered),
@@ -366,7 +367,8 @@ stability_df <- foreach(i = 1:length(species_filtered),
                           
                           # data frame to store results:
                           stability_spec_df <- data.frame("species" = sub("_", " ", species_filtered[i]),
-                                                          "stability" = NA)
+                                                          "stability" = NA,
+                                                          "PCA_percent" = NA)
                           
                           # read tifs with bioclim variables:
                           # need to be loaded within foreach since SpatRasters and SpatVectors are non-exportable objects
@@ -400,7 +402,7 @@ stability_df <- foreach(i = 1:length(species_filtered),
                                               nf = 2) # number of axes
                           
                           # How much climate variation explained by first two axes:
-                          BBS_global_niche_PCA[i,2] = sum(pca.env$eig[1:2]/sum( pca.env$eig))
+                          stability_spec_df$PCA_percent = sum(pca.env$eig[1:2]/sum(pca.env$eig))
                           
                           # predict the scores on the PCA axes:
                           # occurrences within conterminous US used as z1 (corresponds to native distribution in tutorials)
@@ -454,24 +456,25 @@ stability_df <- foreach(i = 1:length(species_filtered),
                         }
 
 stability_df %>% 
-  arrange(-stability) # 309 species
-# 4 missing species:
+  arrange(-stability) # 262 species
+# 3 missing species:
 # Anas_crecca: BL range does not cover conterminous US 
 # Cistothorus_platensis: BL range does not cover conterminous US
 # Columba_livia: BL range does not cover conterminous US
-# Passerella_iliaca: BL breeding range does not cover conterminous US
+
 
 # save species stability values :
 write.csv(stability_df, 
-          file = file.path(data_dir, "species_stability_contUS_BL22.csv"),
+          file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22_060723.csv"),
           row.names = FALSE)
 
-write.csv(BBS_global_niche_PCA, 
-          file = file = file.path(data_dir, "BBS_global_niche_PCA.csv"), 
-          row.names=F)
+# write.csv(BBS_global_niche_PCA, 
+#           file = file = file.path(data_dir, "BBS_global_niche_PCA.csv"), 
+#           row.names=F)
 
 # plots regarding stability:
 plot(sort(stability_df$stability, decreasing = TRUE),
      ylab = "stability", xlab = "number of species", las = 1)
 abline(h = 0.7, col = "red")
 abline(h = 0.5, col = "blue")
+

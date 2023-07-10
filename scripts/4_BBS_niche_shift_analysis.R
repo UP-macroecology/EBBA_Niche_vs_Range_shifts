@@ -31,7 +31,7 @@ bg_spec <- TRUE
 
 # which historic time period should be used:
 hist_years <- 1980:1983 # maximum gap between historic and recent time period
-# hist_years <- 1995:1998 # similar gap between historic and recent time period as in EBBA analysis
+#hist_years <- 1987:1990 # similar gap between historic and recent time period as in EBBA analysis
 
 # paths to data:
 
@@ -48,12 +48,12 @@ plots_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_n
 
 # folder for niche dynamics plots:
 plots_dir <- file.path(plots_dir, "niche_dynamics_species", paste0("BBS_niche_dyn_bg_", ifelse(bg_spec, "spec", "US"), "_hist", 
-                                                                   ifelse(all(hist_years == 1980:1983), "81-83", "96-98")))
+                                                                   ifelse(all(hist_years == 1980:1983), "81-83", "88-90")))
 if(!dir.exists(plots_dir)){dir.create(plots_dir, recursive = TRUE)}
 
 # results table:
 results_file <- file.path(data_dir, paste0("BBS_niche_shift_results_bg_", ifelse(bg_spec, "spec", "US"),  "_hist",
-                                           ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".csv"))
+                                           ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), "_070723.csv"))
 
 
 # ---------------------------- #
@@ -61,20 +61,20 @@ results_file <- file.path(data_dir, paste0("BBS_niche_shift_results_bg_", ifelse
 # ---------------------------- #
 
 # species selection: 
-sel_species <- read.csv(file = file.path(data_dir, "species_stability_contUS_BL22.csv")) %>%
+sel_species <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22_060723.csv")) %>%
   filter(stability >= 0.5) %>% 
   pull(species) %>% 
-  sort # 297
+  sort # 237
 
 # BBS data, only selected species:
-load(file = file.path(data_dir, paste0("BBS_prep_steps1-4_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".RData"))) # output of 2_1_BBS_species_filtering_1-4.R
+load(file = file.path(data_dir, paste0("BBS_prep_steps1-4_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".RData"))) # output of 2_1_BBS_species_filtering_1-4.R
 species_filtered <- sort(unique(hist_prep_df$species))
-sel_species_final <- species_filtered[which(species_filtered %in% sel_species)] # 207 (hist81-83) / 296 (hist96-98)
+sel_species_final <- species_filtered[which(species_filtered %in% sel_species)] # 196 (hist81-83) / 236 (hist96-98)
 
-BBS_hist <- read_sf(file.path(data_dir, paste0("BBS_historic_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".shp"))) %>% # output of 1_BBS_prep_data.R
+BBS_hist <- read_sf(file.path(data_dir, paste0("BBS_historic_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".shp"))) %>% # output of 1_BBS_prep_data.R
   filter(species %in% sel_species_final)
 
-BBS_rec <- read_sf(file.path(data_dir, paste0("BBS_recent_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".shp"))) %>% # output of 1_BBS_prep_data.R
+BBS_rec <- read_sf(file.path(data_dir, paste0("BBS_recent_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".shp"))) %>% # output of 1_BBS_prep_data.R
   filter(species %in% sel_species_final)
 
 
@@ -85,7 +85,7 @@ BBS_rec <- read_sf(file.path(data_dir, paste0("BBS_recent_centr_proj_hist", ifel
 # loop over species:
 
 # register cores for parallel computation:
-registerDoParallel(cores = 12)
+registerDoParallel(cores = 15)
 #getDoParWorkers() # check registered number of cores
 
 niche_shift_df <- foreach(s = 1:length(sel_species_final),

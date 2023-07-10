@@ -26,7 +26,7 @@ SeaBirds <- SeaBirds$Scientific
 #       Filter species:      ####
 # ----------------------------- #
 
-historic_periods <- list(1981:1983, 1996:1998) 
+historic_periods <- list(1981:1983, 1988:1990) 
 
 for(i in 1:length(historic_periods)){
   
@@ -36,12 +36,12 @@ for(i in 1:length(historic_periods)){
     hist_prep_sf <- st_read(file.path(data_dir, "BBS_historic_centr_proj_hist81-83.shp")) # output of 1_BBS_prep_data.R
     rec_prep_sf <- st_read(file.path(data_dir, "BBS_recent_centr_proj_hist81-83.shp")) # output of 1_BBS_prep_data.R
     } else {
-      hist_prep_sf <- st_read(file.path(data_dir, "BBS_historic_centr_proj_hist96-98.shp")) # output of 1_BBS_prep_data.R
-      rec_prep_sf <- st_read(file.path(data_dir, "BBS_recent_centr_proj_hist96-98.shp")) # output of 1_BBS_prep_data.R
+      hist_prep_sf <- st_read(file.path(data_dir, "BBS_historic_centr_proj_hist88-90.shp")) # output of 1_BBS_prep_data.R
+      rec_prep_sf <- st_read(file.path(data_dir, "BBS_recent_centr_proj_hist88-90.shp")) # output of 1_BBS_prep_data.R
       }
   
   # number of validation routes:
-  n_valid_routes <- length(unique(hist_prep_sf$RTENO)) # V1: 522; V2: 933
+  n_valid_routes <- length(unique(hist_prep_sf$RTENO)) # V1: 522; V2: 721
   
   # convert to data frame and join species names:
   
@@ -50,14 +50,14 @@ for(i in 1:length(historic_periods)){
     st_drop_geometry() %>% 
     filter(pres == 1)# only keep species with presence records
   
-  length(unique(hist_prep_df$species)) # 459 species for historic time period 1981-1983 (V1); 513 for historic time period 1996-1998 (V2) 
+  length(unique(hist_prep_df$species)) # 459 species for historic time period 1981-1983 (V1); 497 for historic time period 1988-1990 (V2) 
   
   # recent time period:
   rec_prep_df <- rec_prep_sf %>% 
     st_drop_geometry() %>% 
     filter(pres == 1) # only keep species with presence records
   
-  length(unique(rec_prep_df$species)) # 480 species in recent time period (V1), 525 (V2)
+  length(unique(rec_prep_df$species)) # 480 species in recent time period (V1), 522 (V2)
   
   
   # 1. exclude pelagic specialists (according to Wilman et al. 2014): ----
@@ -65,8 +65,8 @@ for(i in 1:length(historic_periods)){
   hist_prep_df <- hist_prep_df[which(!hist_prep_df$species %in% SeaBirds),]
   rec_prep_df <- rec_prep_df[which(!rec_prep_df$species %in% SeaBirds),]
   
-  length(unique(hist_prep_df$species)) # 452 species left (V1: 7 species removed); 505 (V2, 8 species removed)
-  length(unique(rec_prep_df$species)) # 477 species left (V1: 3 species removed); 518 (V2, 7 species removed)
+  length(unique(hist_prep_df$species)) # 452 species left (V1: 7 species removed); 488 (V2)
+  length(unique(rec_prep_df$species)) # 477 species left (V1: 3 species removed); 512 (V2)
   
   
   # 2. exclude rare species with n<20 occurrences in any of the two periods: ----
@@ -77,7 +77,7 @@ for(i in 1:length(historic_periods)){
     filter(n_occurrences >= 20) %>% 
     ungroup # 34,468
   
-  length(unique(hist_prep_df$species)) # 230 species left (V1); 326 (V2)
+  length(unique(hist_prep_df$species)) # 230 species left (V1); 285 (V2)
   
   rec_prep_df <- rec_prep_df %>% 
     group_by(species) %>% 
@@ -85,7 +85,7 @@ for(i in 1:length(historic_periods)){
     filter(n_occurrences >= 20) %>% 
     ungroup # 36,494
   
-  length(unique(rec_prep_df$species)) # 235 species left (V1); 337 (V2)
+  length(unique(rec_prep_df$species)) # 235 species left (V1); 288 (V2)
   
   
   # 3. exclude very common species with >90% prevalence in both periods: ----
@@ -103,12 +103,12 @@ for(i in 1:length(historic_periods)){
   hist_prep_df <- hist_prep_df %>% 
     filter(n_occurrences <= 0.9 * n_valid_routes)
   
-  length(unique(hist_prep_df$species)) # 221 species left (V1); 322 (V2)
+  length(unique(hist_prep_df$species)) # 221 species left (V1); 280 (V2)
   
   rec_prep_df <- rec_prep_df %>% 
     filter(n_occurrences <= 0.9 * n_valid_routes)
   
-  length(unique(rec_prep_df$species)) # 228 species left (V1); 334 (V2)
+  length(unique(rec_prep_df$species)) # 228 species left (V1); 284 (V2)
   
   
   # 4. keep only those species that occur in both periods: ----
@@ -116,37 +116,39 @@ for(i in 1:length(historic_periods)){
   hist_prep_df <- hist_prep_df %>% 
     filter(species %in% rec_prep_df$species)
   
-  length(unique(hist_prep_df$species)) # 212 species left (V1); 314 (V2)
+  length(unique(hist_prep_df$species)) # 212 species left (V1); 264 (V2)
   
   rec_prep_df <- rec_prep_df %>% 
     filter(species %in% hist_prep_df$species)
   
-  length(unique(rec_prep_df$species)) # 212 species left (V1); 314 (V2)
+  length(unique(rec_prep_df$species)) # 212 species left (V1); 264 (V2)
   
   # 5. remove records where information is not on species level: ----
   
   hist_prep_df <- hist_prep_df %>% 
     filter(!grepl(pattern = "sp\\.|/", x = species))
   
-  length(unique(hist_prep_df$species)) # 212 (V1); 312 (V2)
+  length(unique(hist_prep_df$species)) # 212 (V1); 264 (V2)
   
   rec_prep_df <- rec_prep_df %>% 
     filter(!grepl(pattern = "sp\\.|/", x = species))
   
-  length(unique(rec_prep_df$species)) # 212 (V1); 312 (V2)
+  length(unique(rec_prep_df$species)) # 212 (V1); 264 (V2)
   
   # how often does each species occur:
-  hist_prep_df %>%
+  hist_prep_df <- hist_prep_df %>%
     arrange(-n_occurrences) %>%
+    dplyr::select(species, n_occurrences) %>% 
     distinct(species, n_occurrences)
   
-  rec_prep_df %>%
+  rec_prep_df <- rec_prep_df %>%
     arrange(-n_occurrences) %>%
+    dplyr::select(species, n_occurrences) %>% 
     distinct(species, n_occurrences)
   
   if(i == 1){
     save(hist_prep_df, rec_prep_df, file = file.path(data_dir, "BBS_prep_steps1-4_hist81-83.RData"))
     } else {
-      save(hist_prep_df, rec_prep_df, file = file.path(data_dir, "BBS_prep_steps1-4_hist96-98.RData"))
+      save(hist_prep_df, rec_prep_df, file = file.path(data_dir, "BBS_prep_steps1-4_hist88-90.RData"))
       }
 }

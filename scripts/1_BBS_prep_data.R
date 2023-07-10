@@ -155,9 +155,9 @@ rm(bbs_agg)
 # 3-year periods as in Sofaer et al. 2018 (Sofaer et al. use 1977-1979 and 2012-2014)
 
 # historic: 2 versions
-historic_periods <- list(1981:1983, 1996:1998) 
+historic_periods <- list(1981:1983, 1988:1990) 
 # 1981-1983: Chelsa data start 1980, historic time period starts 1981 because Chelsa data of year preceding the considered time period are included to account for lag effects (see Sofaer et al. 2018)
-# 1996-1998: similar time gap as between EBBA1 and EBBA2
+# 1988-1990: similar time gap as between EBBA1 and EBBA2
 
 recent <- 2016:2018 # 2018: end of available Chelsa data
 
@@ -189,7 +189,7 @@ for(i in 1:length(historic_periods)){
     # remove water based routes:
     filter(RouteTypeID == 1) %>% 
     
-    select(RTENO, Year) %>% 
+    dplyr::select(RTENO, Year) %>% 
     filter(Year %in% c(historic, recent)) %>% 
     distinct %>% 
     
@@ -220,7 +220,7 @@ for(i in 1:length(historic_periods)){
     # add presence information:
     
     # a) assign presence where a species was observed at least once on a route in a year
-    mutate(present_year = if_else(rowSums(select(., all_of(sections))) > 0, 1, 0)) %>% 
+    mutate(present_year = if_else(rowSums(dplyr::select(., all_of(sections))) > 0, 1, 0)) %>% 
     
     # b) assign presence where a species was present at least once in a time period on a route (= final presences)
     group_by(AOU, period, RTENO) %>%
@@ -234,31 +234,31 @@ for(i in 1:length(historic_periods)){
   
   # historic time period:
   model_df_hist <- bbs_cleaned %>% 
-    select(RTENO, Latitude, Longitude, AOU, period, present_period) %>% 
+    dplyr::select(RTENO, Latitude, Longitude, AOU, period, present_period) %>% 
     distinct() %>% # one row for each route and time period
     pivot_wider(names_from = AOU, # species as columns, to get each route-species combination
                 values_from = present_period) %>% # 1 = present, NA = true absence (no presence recorded, although sampled in each year of the time period)
     mutate(across(.cols = c(5:ncol(.)), .fns = ~ ifelse(is.na(.x), 0, .)))  %>% # change NA to 0 for true absence
     filter(period == 1) %>% # historic time period (filter only here to get a column for each species)
-    select(-period) %>% 
+    dplyr::select(-period) %>% 
     pivot_longer(cols = 4:ncol(.), names_to = "AOU", values_to = "pres") %>%  # convert back to long format with presence/absence column
     mutate(AOU = as.numeric(AOU))
   
   # recent time period:
   model_df_rec <- bbs_cleaned %>% 
-    select(RTENO, Latitude, Longitude, AOU, period, present_period) %>% 
+    dplyr::select(RTENO, Latitude, Longitude, AOU, period, present_period) %>% 
     distinct() %>%
     pivot_wider(names_from = AOU,
                 values_from = present_period) %>%
     mutate(across(.cols = c(5:ncol(.)), .fns = ~ ifelse(is.na(.x), 0, .)))  %>%
     filter(period == 2) %>%
-    select(-period) %>% 
+    dplyr::select(-period) %>% 
     pivot_longer(cols = 4:ncol(.), names_to = "AOU", values_to = "pres") %>%
     mutate(AOU = as.numeric(AOU))
 
   # add species names:
   species_names <- read.csv(file.path("data", "BBS_species_list.csv")) %>% 
-    select(c(AOU, Scientific_Name))
+    dplyr::select(c(AOU, Scientific_Name))
   
   model_df_hist <- model_df_hist %>% 
     left_join(species_names) %>% 
@@ -276,7 +276,7 @@ for(i in 1:length(historic_periods)){
     filter(RTENO_BBSf %in% valid_routes) %>% 
     group_by(RTENO_BBSf) %>% summarise %>% # merge lines if routes in shapefile consist of multiple adjacent lines
     mutate(centroid_X = NA) %>% 
-    mutate(centroid_Y = NA) # 521 (V1), 930 (V2)
+    mutate(centroid_Y = NA) # 521 (V1), 721 (V2)
   
   # extract coordinates of route centroids, if route geometry is available:
   for(j in 1:nrow(bbs_routes_sf_val)){
@@ -309,7 +309,7 @@ for(i in 1:length(historic_periods)){
     st_as_sf(coords = c("centroid_X", "centroid_Y"), crs = "ESRI:102003")
   
   # write to shapefile:
-  st_write(BBS_hist_sf, file.path(data_dir, paste0("BBS_historic_", "centr_proj_", ifelse(i == 1, "hist81-83", "hist96-98"), ".shp")), append = FALSE)
+  st_write(BBS_hist_sf, file.path(data_dir, paste0("BBS_historic_", "centr_proj_", ifelse(i == 1, "hist81-83", "hist88-90"), ".shp")), append = FALSE)
   
   # add centroid coordinates to recent df:
   model_df_rec <- model_df_rec %>% 
@@ -327,5 +327,5 @@ for(i in 1:length(historic_periods)){
     st_as_sf(coords = c("centroid_X", "centroid_Y"), crs = "ESRI:102003")
  
   # write to shapefile:
-  st_write(BBS_rec_sf, file.path(data_dir, paste0("BBS_recent_", "centr_proj_", ifelse(i == 1, "hist81-83", "hist96-98"), ".shp")), append = FALSE) # recent contains different validation routes depending on historic years considered
+  st_write(BBS_rec_sf, file.path(data_dir, paste0("BBS_recent_", "centr_proj_", ifelse(i == 1, "hist81-83", "hist88-90"), ".shp")), append = FALSE) # recent contains different validation routes depending on historic years considered
 }

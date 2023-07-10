@@ -49,8 +49,8 @@ EBBA_change_grid <- read_sf(file.path("data", "ebba2_grid50x50_change_v1", "ebba
 # results of niche and range shift analyses:
 
 # load analyses results (output of 4_EBBA_niche_shift_analysis.R and 4_EBBA_range_shift_analysis.R)
-niche_results <- read.csv(file.path(data_dir, paste0("EBBA_niche_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"), ".csv")))
-range_results <- read.csv(file.path(data_dir, paste0("EBBA_range_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"), ".csv")))
+niche_results <- read.csv(file.path(data_dir, paste0("EBBA_niche_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"), "_070723.csv")))
+range_results <- read.csv(file.path(data_dir, paste0("EBBA_range_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"), "_070723.csv")))
 
 # -------------------------------- #
 #     Plots and explorations:   ####

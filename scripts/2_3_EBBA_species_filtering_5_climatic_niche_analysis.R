@@ -26,9 +26,9 @@ library(dismo) # requires spatial data formats of raster package
 # ------------------------------ #
 
 # project data:
-data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
-#data_dir <- file.path("data", "EBBA_analysis")
-data_dir_server <- file.path("/mnt", "ibb_share", "zurell_transfer","Schifferle_EBBA_BBS_niche_vs_range_shift", "data", "EBBA_analysis")
+#data_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_niche_range_shifts")
+data_dir <- file.path("data", "EBBA_analysis")
+#data_dir_server <- file.path("/mnt", "ibb_share", "zurell_transfer","Schifferle_EBBA_BBS_niche_vs_range_shift", "data", "EBBA_analysis")
 
 # EBBA data:
 datashare_EBCC <- file.path("/mnt", "ibb_share", "zurell", "biodat", "distribution", "EBCC")
@@ -46,8 +46,8 @@ datashare_Chelsa <- file.path("/mnt", "ibb_share", "zurell", "envidat", "biophys
 chelsa_proj_path <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "Chelsa_for_EBBA")
 
 # output folder for niche dynamics plots Birdlife range vs. EBBA area:
-EBBA_BL_plot_dir <- file.path(data_dir, "plots", "EBBA2_vs_BL_niche_dyn")
-#EBBA_BL_plot_dir <- file.path("plots", "coverage_climatic_niche", "EBBA2_vs_BL_niche_dyn")
+#EBBA_BL_plot_dir <- file.path(data_dir, "plots", "EBBA2_vs_BL_niche_dyn")
+EBBA_BL_plot_dir <- file.path("plots", "coverage_climatic_niche", "EBBA2_vs_BL_niche_dyn")
 if(!dir.exists(EBBA_BL_plot_dir)){dir.create(EBBA_BL_plot_dir, recursive = TRUE)}
 
 # species left after filtering step 4 (pelagic specialists, rare and very common species 
@@ -69,7 +69,7 @@ registerDoParallel(cores = 2)
 
 ## extract shapefiles from Birdlife 2022 geodatabase:: -------------------------
 
-# only parts of range where species is considered extant (presence = 1) and which 
+# only parts of range where species is considered extant (presence = 1) and which
 # is used either throughout the whole year (seasonal = 1) or during the breeding season (seasonal = 2)
 
 # account for taxonomic changes between EBBA (older) and BL range maps (newer):
@@ -91,18 +91,18 @@ if(!dir.exists(file.path(data_dir, "Birdlife_ranges_EBBA", "Shapefiles_2022"))){
 
 # extract shapefiles:
 foreach(s = 1:length(species_filtered),
-        .packages = c("gdalUtilities"), 
+        .packages = c("gdalUtilities"),
         .verbose = TRUE,
         .errorhandling = "remove",
         .inorder = FALSE) %dopar% {
-          
+
           spec <- sub("_", " ", species_filtered[s])
-          
+
           # account for name change:
           if(spec %in% spec_name_change_df$EBBA_name){
             spec <- spec_name_change_df$BL_name[which(spec_name_change_df$EBBA_name == spec)]
           }
-          
+
           gdalUtilities::ogr2ogr(src_datasource_name = file.path(datashare_Birdlife, "BOTW.gdb"),
                                  layer = "All_Species",
                                  where = paste0("sci_name = '", spec, "' AND (SEASONAL = '1' OR SEASONAL = '2') AND PRESENCE = '1'"), # SEASONAL = 1: resident throughout the year, SEASONAL = 2: breeding season
@@ -113,24 +113,24 @@ foreach(s = 1:length(species_filtered),
 
 ## rasterize and project Birdlife shapefiles: ----------------------------------
 
-# for each species: convert Birdlife range polygons to raster, 
+# for each species: convert Birdlife range polygons to raster,
 # project raster and change resolution to 50 km:
 
 # global equal area projection (Interrupted Goode Homolosine)
 # used by SoilGrids (Homolosine projection applied to the WGS84 datum)
 # from: https://www.isric.org/explore/soilgrids/faq-soilgrids#How_can_I_use_the_Homolosine_projection
-homolosine <- 'PROJCS["Homolosine", 
-                     GEOGCS["WGS 84", 
-                            DATUM["WGS_1984", 
-                                  SPHEROID["WGS 84",6378137,298.257223563, 
-                                           AUTHORITY["EPSG","7030"]], 
-                                  AUTHORITY["EPSG","6326"]], 
-                            PRIMEM["Greenwich",0, 
-                                   AUTHORITY["EPSG","8901"]], 
-                            UNIT["degree",0.0174532925199433, 
-                                 AUTHORITY["EPSG","9122"]], 
-                            AUTHORITY["EPSG","4326"]], 
-                     PROJECTION["Interrupted_Goode_Homolosine"], 
+homolosine <- 'PROJCS["Homolosine",
+                     GEOGCS["WGS 84",
+                            DATUM["WGS_1984",
+                                  SPHEROID["WGS 84",6378137,298.257223563,
+                                           AUTHORITY["EPSG","7030"]],
+                                  AUTHORITY["EPSG","6326"]],
+                            PRIMEM["Greenwich",0,
+                                   AUTHORITY["EPSG","8901"]],
+                            UNIT["degree",0.0174532925199433,
+                                 AUTHORITY["EPSG","9122"]],
+                            AUTHORITY["EPSG","4326"]],
+                     PROJECTION["Interrupted_Goode_Homolosine"],
                      UNIT["Meter",1]]'
 
 # list shapefiles:
@@ -142,27 +142,27 @@ if(!dir.exists(file.path(data_dir, "Birdlife_ranges_EBBA", "Raster_2022"))){
 }
 
 foreach(i = 1:length(BL_range_shps),
-        .packages = c("gdalUtilities"), 
+        .packages = c("gdalUtilities"),
         .verbose = TRUE,
         .errorhandling = "remove",
         .inorder = FALSE) %dopar% {
-          
+
           # rasterize polygon:
           gdalUtilities::gdal_rasterize(src_datasource = file.path(BL_range_shps[i]),
                                         dst_filename = file.path(data_dir, "Birdlife_ranges_EBBA", "Raster_2022", paste0(species_filtered[i], "_WGS84.tif")),
                                         burn = 1,
                                         tr = c(0.1, 0.1), # target resolution in degrees (same unit as src_datasource) (0.1° enough since final resolution will be 50 km)
                                         a_nodata = -99999) # value for cells with missing data
-          
+
           # project and change resolution to 50 km (as EBBA):
-          gdalUtilities::gdalwarp(srcfile = file.path(data_dir, "Birdlife_ranges_EBBA", "Raster_2022", paste0(species_filtered[i], "_WGS84.tif")), 
+          gdalUtilities::gdalwarp(srcfile = file.path(data_dir, "Birdlife_ranges_EBBA", "Raster_2022", paste0(species_filtered[i], "_WGS84.tif")),
                                   dstfile = file.path(data_dir, "Birdlife_ranges_EBBA", "Raster_2022", paste0(species_filtered[i], "_50km.tif")),
                                   overwrite = TRUE,
                                   tr = c(50000, 50000), # target resolution in meters (same as unit of target srs)
                                   r = "max", # resampling method
                                   t_srs = homolosine # target spatial reference
           )
-          
+
           unlink(file.path(data_dir, "Birdlife_ranges_EBBA", "Raster_2022", paste0(species_filtered[i], "_WGS84.tif"))) # delete unprojected raster
         }
 
@@ -177,8 +177,8 @@ gdalUtilities::gdal_rasterize(src_datasource = file.path(datashare_EBCC, "EBBA2"
                               a_nodata = -99999) # value for cells with missing data
 
 # project and change resolution to 50 km:
-gdalUtilities::gdalwarp(srcfile = file.path(data_dir, "EBBA2.tif"), 
-                        dstfile = file.path(data_dir, "EBBA2_hom.tif"), 
+gdalUtilities::gdalwarp(srcfile = file.path(data_dir, "EBBA2.tif"),
+                        dstfile = file.path(data_dir, "EBBA2_hom.tif"),
                         overwrite = TRUE,
                         tr = c(50000, 50000), # target resolution in meters (same as unit of target srs)
                         r = "max", # resampling method
@@ -189,7 +189,8 @@ gdalUtilities::gdalwarp(srcfile = file.path(data_dir, "EBBA2.tif"),
 ## mask: overlay Birdlife ranges of all species and EBBA grid: -----------------
 
 # list rasters:
-BL_range_tifs <- list.files(file.path(data_dir_server, "Birdlife_ranges_EBBA", "Raster_2022"), full.names = TRUE, pattern = "_50km.tif$")
+#BL_range_tifs <- list.files(file.path(data_dir_server, "Birdlife_ranges_EBBA", "Raster_2022"), full.names = TRUE, pattern = "_50km.tif$")
+BL_range_tifs <- list.files(file.path(data_dir, "Birdlife_ranges_EBBA", "Raster_2022"), full.names = TRUE, pattern = "_50km.tif$")
 
 # Birdlife ranges of all species:
 ranges <- lapply(BL_range_tifs, rast)
@@ -201,24 +202,24 @@ ranges <- append(ranges, rast(file.path(data_dir, "EBBA2_hom.tif")))
 # (buffer to make sure that even after resampling mask covers raster grid points of species ranges)
 # (resampling aligns raster origins, necessary for masking)
 
-ranges_combined <- do.call(terra::merge, ranges) %>% 
+ranges_combined <- do.call(terra::merge, ranges) %>%
   buffer(width = 100000) %>% # Warning: "[merge] rasters did not align and were resampled" -> fine, aligns ranges of different species
   resample(y = rast(file.path(data_dir, "Chelsa", "CHELSA_tasmin_11_2014_V.2.1_50km.tif")),
            method = "near") # projected Chelsa raster as template
 
 # save mask:
-writeRaster(ranges_combined, 
+writeRaster(ranges_combined,
             filename = file.path(data_dir, "EBBA_Birdlife_ranges_mask.tif"),
             overwrite = TRUE, NAflag = FALSE)
 
 
 ## exploration: compare EBBA1 range with range maps from Birdlife: -------------
 
-world <- rnaturalearth::ne_countries(scale = "small", returnclass = "sf") %>% 
+world <- rnaturalearth::ne_countries(scale = "small", returnclass = "sf") %>%
   st_transform("EPSG:3035")
 
 EBBA1_taxunif_sf <- read_sf(file.path(data_dir, "EBBA1_prelim_comparable_harmonized.shp")) # output of 1_EBBA_prep_data.R
-EBBA_change_grid <- read_sf(file.path(datashare_EBCC, "EBBA_change", "ebba2_grid50x50_change_v1.shp")) 
+EBBA_change_grid <- read_sf(file.path(datashare_EBCC, "EBBA_change", "ebba2_grid50x50_change_v1.shp"))
 
 # for which species should distributions be plotted:
 spec = 3
@@ -228,7 +229,7 @@ BL_range_sf <- read_sf(BL_range_shps[spec])
 
 # EBBA distribution:
 EBBA1_range_sf <- EBBA1_taxunif_sf %>%
-  st_drop_geometry %>% 
+  st_drop_geometry %>%
   filter(species == sub("_", " ", species_filtered[spec])) %>%
   right_join(EBBA_change_grid, by = c("cell50x50" = "cell50x50_")) %>%
   st_as_sf()
@@ -246,13 +247,13 @@ ggplot2::ggplot(world) +
 # ------------------------------- #
 
 # names of original Chelsa files:
-chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE, pattern = paste0("(", paste(2009:2018, collapse = "|"), ")_V.2.1.tif")) # 480
+chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE, pattern = paste0("(", paste(2012:2017, collapse = "|"), ")_V.2.1.tif"))
 
 # names of projected Chelsa files:
-names_proj <- list.files(file.path(chelsa_proj_path, "Chelsa_projected"), full.names = TRUE)
+names_proj <- paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "\\.tif")})), "_50km.tif")
 
 # folder to store masked CHELSA data:
-chelsa_masked_path <- file.path(chelsa_proj_path, "Chelsa_masked_global")
+chelsa_masked_path <- file.path(data_dir, "Chelsa", "Chelsa_masked_global_EBBA")
 # create folder if it doesn't exist yet:
 if(!dir.exists(chelsa_masked_path)){dir.create(chelsa_masked_path, recursive = TRUE)}
 
@@ -268,10 +269,10 @@ for(i in 1:length(chelsa_tifs)){
   
   print(i)
   
-  names_proj[i] %>%
+  file.path(chelsa_proj_path, "Chelsa_projected", names_proj[i]) %>%
     rast %>%
-    mask(mask = ranges_mask) %>%
-    writeRaster(names_masked[i], overwrite = TRUE)
+    terra::mask(mask = ranges_mask) %>%
+    terra::writeRaster(names_masked[i], overwrite = TRUE)
 }
 
 
@@ -326,7 +327,7 @@ biovars_rast <- rast(biovars) # convert to terra object
 
 # save tifs:
 
-bioclim_folder <- file.path(chelsa_proj_path, "Bioclim_global_2012_2017")
+bioclim_folder <- file.path(data_dir, paste0("Bioclim_global_", min(years), "_", max(years)))
 if(!dir.exists(bioclim_folder)){dir.create(bioclim_folder, recursive = TRUE)}
 
 writeRaster(biovars_rast,
@@ -342,13 +343,14 @@ writeRaster(biovars_rast,
 # calculate stability index: how much of the species global climatic niche is covered in Europe
 
 # read comparable EBBA2 data:
-EBBA2_comp_sf <- st_read(file.path(data_dir_server, "EBBA2_prelim_comparable_cells.shp")) # output of 1_EBBA_prep_data.R
+#EBBA2_comp_sf <- st_read(file.path(data_dir_server, "EBBA2_prelim_comparable_cells.shp")) # output of 1_EBBA_prep_data.R
+EBBA2_comp_sf <- st_read(file.path(data_dir, "EBBA2_prelim_comparable_cells.shp")) # output of 1_EBBA_prep_data.R
 
 # files of rasterized and projected Birdlife ranges:
 BL_range_tifs
 
 # data frame for PCA eigenvalues
-EBBA_global_niche_PCA <- data.frame(species=species_filtered,PCA_percent=NA)
+#EBBA_global_niche_PCA <- data.frame(species=species_filtered, PCA_percent=NA)
 
 # loop over species:
 stability_df <- foreach(i = 1:length(species_filtered),
@@ -359,7 +361,8 @@ stability_df <- foreach(i = 1:length(species_filtered),
                             
                             # data frame to store results:
                             stability_spec_df <- data.frame("species" = sub("_", " ", species_filtered[i]),
-                                                       "stability" = NA)
+                                                       "stability" = NA,
+                                                       "PCA_percent" = NA)
                             
                             # read tifs with bioclim variables:
                             # need to be loaded within foreach since SpatRasters and SpatVectors are non-exportable objects
@@ -398,7 +401,7 @@ stability_df <- foreach(i = 1:length(species_filtered),
                                                 nf = 2) # number of axes
                             
                             # How much climate variation explained by first two axes:
-                            EBBA_global_niche_PCA[i,2] = sum(pca.env$eig[1:2]/sum( pca.env$eig))
+                            stability_spec_df$PCA_percent = sum(pca.env$eig[1:2]/sum( pca.env$eig))
                             
                             # predict the scores on the PCA axes:
                             # EBBA2 used as z1 (corresponds to native distribution in tutorials)
@@ -453,12 +456,12 @@ stability_df <- foreach(i = 1:length(species_filtered),
 
 # save species stability values :
 write.csv(stability_df, 
-          file = file.path(data_dir, "species_stability_EBBA2_BL22_140623.csv"),
+          file = file.path(data_dir, "species_stability_EBBA2_BL22_060723.csv"),
           row.names = FALSE)
 #save PCA eigen value sums:
-write.csv(EBBA_global_niche_PCA, 
-          file = file.path(data_dir, "EBBA_global_niche_PCA.csv"), 
-          row.names = FALSE)
+# write.csv(EBBA_global_niche_PCA, 
+#           file = file.path(data_dir, "EBBA_global_niche_PCA.csv"), 
+#           row.names = FALSE)
 
 
 # plot stability:

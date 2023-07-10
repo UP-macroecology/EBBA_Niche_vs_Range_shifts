@@ -44,7 +44,7 @@ plots_dir <- file.path(plots_dir, "niche_dynamics_species", paste0("EBBA_niche_d
 if(!dir.exists(plots_dir)){dir.create(plots_dir, recursive = TRUE)}
 
 # results table:
-results_file <- file.path(data_dir, paste0("EBBA_niche_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"),"_140623", ".csv"))
+results_file <- file.path(data_dir, paste0("EBBA_niche_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"),"_070723", ".csv"))
 
 
 # ---------------------------- #
@@ -139,7 +139,7 @@ if(bg_spec == FALSE){
 # loop over species:
 
 # register cores for parallel computation:
-registerDoParallel(cores = 4)
+registerDoParallel(cores = 20)
 #getDoParWorkers() # check registered number of cores
 
 niche_shift_df <- foreach(s = 1:length(sel_species),

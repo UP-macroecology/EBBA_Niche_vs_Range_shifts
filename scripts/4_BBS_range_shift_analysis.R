@@ -33,11 +33,11 @@ library(ade4)
 # ------------------------------ #
 
 # environmental background: presences and absences within 600 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
-bg_spec <- FALSE
+bg_spec <- TRUE
 
 # which historic time period should be used:
-#hist_years <- 1980:1983 # maximum gap between historic and recent time period
-hist_years <- 1995:1998 # similar gap between historic and recent time period as in EBBA analysis
+hist_years <- 1980:1983 # maximum gap between historic and recent time period
+#hist_years <- 1987:1990 # similar gap between historic and recent time period as in EBBA analysis
 
 # paths to data:
 
@@ -50,32 +50,32 @@ plots_dir <- file.path("/import", "ecoc9z", "data-zurell", "schifferle", "EBBA_n
 
 # folder for range dynamics plots:
 plots_dir <- file.path(plots_dir, "range_dynamics_species", paste0("BBS_range_dyn_bg_", ifelse(bg_spec, "spec", "US"), "_hist", 
-                                                                   ifelse(all(hist_years == 1980:1983), "81-83", "96-98")))
+                                                                   ifelse(all(hist_years == 1980:1983), "81-83", "88-90")))
 if(!dir.exists(plots_dir)){dir.create(plots_dir, recursive = TRUE)}
 
 # results table:
 results_file <- file.path(data_dir, paste0("BBS_range_shift_results_bg_", ifelse(bg_spec, "spec", "US"),  "_hist",
-                                           ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".csv"))
+                                           ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".csv"))
 
 # ---------------------------- #
 #          Load data:       ####
 # ---------------------------- #
 
 # species selection: 
-sel_species <- read.csv(file = file.path(data_dir, "species_stability_contUS_BL22.csv")) %>% 
+sel_species <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22_060723.csv")) %>% 
   filter(stability >= 0.5) %>% 
   pull(species) %>% 
-  sort # 297
+  sort # 237
 
 # BBS data, only selected species:
-load(file = file.path(data_dir, paste0("BBS_prep_steps1-4_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".RData"))) # output of 2_1_BBS_species_filtering_1-4.R
-species_filtered <- sort(unique(hist_prep_df$species))
-sel_species_final <- species_filtered[which(species_filtered %in% sel_species)] # 296
+load(file = file.path(data_dir, paste0("BBS_prep_steps1-4_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".RData"))) # output of 2_1_BBS_species_filtering_1-4.R
+species_filtered <- sort(hist_prep_df$species)
+sel_species_final <- species_filtered[which(species_filtered %in% sel_species)] # 196 (hist. 88-90: 236)
 
-BBS_hist <- read_sf(file.path(data_dir, paste0("BBS_historic_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".shp"))) %>% # output of 1_BBS_prep_data.R
+BBS_hist <- read_sf(file.path(data_dir, paste0("BBS_historic_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".shp"))) %>% # output of 1_BBS_prep_data.R
   filter(species %in% sel_species_final)
 
-BBS_rec <- read_sf(file.path(data_dir, paste0("BBS_recent_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".shp"))) %>% # output of 1_BBS_prep_data.R
+BBS_rec <- read_sf(file.path(data_dir, paste0("BBS_recent_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".shp"))) %>% # output of 1_BBS_prep_data.R
   filter(species %in% sel_species_final)
 
 
@@ -183,7 +183,7 @@ NA_mask <- spData::world %>%
 # loop over species:----
 
 # register cores for parallel computation:
-registerDoParallel(cores = 15)
+registerDoParallel(cores = 10)
 #getDoParWorkers() # check registered number of cores
 
 range_ecospat_df <- foreach(s = 1:length(sel_species_final),
@@ -236,15 +236,15 @@ range_ecospat_df <- foreach(s = 1:length(sel_species_final),
                               
                               if(bg_spec){
                                 
-                                # environmental background = all presences and true absences within 600 km of presences (Sofaer et al. 2018)
+                                # environmental background = all presences and true absences within 500 km of presences
                                 
-                                ## 600 km buffer around presences:
+                                ## 500 km buffer around presences:
                                 background_bf <- BBS_hist %>%
                                   filter(species == spec & pres == 1) %>% 
-                                  st_buffer(dist = 600000) %>% 
+                                  st_buffer(dist = 500000) %>% 
                                   st_union
                                 
-                                ## species records (presences and true absences) within 600 km of presences:
+                                ## species records (presences and true absences) within 500 km of presences:
                                 background_hist <- BBS_hist %>%
                                   filter(species == spec) %>% 
                                   st_filter(y = background_bf, .predicate = st_within) %>% 
@@ -270,15 +270,15 @@ range_ecospat_df <- foreach(s = 1:length(sel_species_final),
                               
                               if(bg_spec){
                                 
-                                # environmental background = all presences and true absences within 600 km of presences (Sofaer et al. 2018)
+                                # environmental background = all presences and true absences within 500 km of presences
                                 
                                 ## 600 km buffer around presences:
                                 background_bf <- BBS_rec %>%
                                   filter(species == spec & pres == 1) %>% 
-                                  st_buffer(dist = 600000) %>% 
+                                  st_buffer(dist = 500000) %>% 
                                   st_union
                                 
-                                ## species records (presences and true absences) within 600 km of presences:
+                                ## species records (presences and true absences) within 500 km of presences:
                                 background_rec <- BBS_rec %>%
                                   filter(species == spec) %>% 
                                   st_filter(y = background_bf, .predicate = st_within) %>% 

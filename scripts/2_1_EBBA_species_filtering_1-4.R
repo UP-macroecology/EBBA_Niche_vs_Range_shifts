@@ -35,7 +35,7 @@ if(final_filtering){
 if(final_filtering){
   
   # species with stability >= 50 %:
-  sel_species_stab <- read.csv(file = file.path(data_dir, "species_stability_EBBA2_BL22_030423.csv")) %>% # output of 2_3_EBBA_species_filtering_5_climatic_niche_analysis.R
+  sel_species_stab <- read.csv(file = file.path(data_dir, "species_stability_EBBA2_BL22_060723.csv")) %>% # output of 2_3_EBBA_species_filtering_5_climatic_niche_analysis.R
     filter(stability >= 0.5) %>% 
     pull(species)
   
@@ -64,7 +64,7 @@ EBBA1_prep <- EBBA1_prep_sf %>%
 EBBA2_prep <- EBBA2_prep_sf %>% 
   st_drop_geometry()
 
-length(unique(EBBA1_prep$species))
+length(unique(EBBA1_prep$species)) # 116 insetad of 118 because we did not request EBBA change data for Alauda arvensis and Motacilla flava since they would be discarded anyway (too common)
 length(unique(EBBA2_prep$species))
 
 
@@ -143,12 +143,14 @@ EBBA2_prep <- EBBA2_prep %>%
 length(unique(EBBA2_prep$species))
 
 ## how often does each species occur in each of the EBBAs:
-EBBA1_prep %>%
+EBBA1_prep <- EBBA1_prep %>%
   arrange(-n_occurrences) %>%
+  dplyr::select(-c(cell50x50, Change)) %>%  #xx
   distinct(species, n_occurrences)
 
-EBBA2_prep %>%
+EBBA2_prep <- EBBA2_prep %>%
   arrange(-n_occurrences) %>%
+  dplyr::select(-c(cell50x50, Change)) %>%  #xx
   distinct(species, n_occurrences)
 
 save(EBBA1_prep, EBBA2_prep, file = res_file)

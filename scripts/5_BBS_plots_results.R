@@ -19,7 +19,7 @@ plots_dir <- file.path("plots")
 
 # which historic time period should be used:
 hist_years <- 1980:1983 # maximum gap between historic and recent time period
-# hist_years <- 1995:1998 # similar gap between historic and recent time period as in EBBA analysis
+#hist_years <- 1987:1990 # similar gap between historic and recent time period as in EBBA analysis
 
 # environmental background: presences and absences within 500 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
 bg_spec <- TRUE
@@ -30,34 +30,36 @@ bg_spec <- TRUE
 # ---------------------------- #
 
 # species selection: 
-sel_species <- read.csv(file = file.path(data_dir, "species_stability_contUS_BL22_160623.csv")) %>% 
+sel_species <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22_060723.csv")) %>% 
   filter(stability >= 0.5) %>% 
   pull(species) %>% 
   sort
 
 # BBS data, only selected species:
-load(file = file.path(data_dir, paste0("BBS_prep_steps1-4_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".RData"))) # output of 2_1_BBS_species_filtering_1-4.R
+load(file = file.path(data_dir, paste0("BBS_prep_steps1-4_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".RData"))) # output of 2_1_BBS_species_filtering_1-4.R
 species_filtered <- sort(unique(hist_prep_df$species))
 sel_species_final <- species_filtered[which(species_filtered %in% sel_species)]
 
-BBS_hist_sf <- read_sf(file.path(data_dir, paste0("BBS_historic_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".shp"))) %>% # output of 1_BBS_prep_data.R
+BBS_hist_sf <- read_sf(file.path(data_dir, paste0("BBS_historic_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".shp"))) %>% # output of 1_BBS_prep_data.R
   filter(species %in% sel_species_final)
 
-BBS_rec_sf <- read_sf(file.path(data_dir, paste0("BBS_recent_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".shp"))) %>% # output of 1_BBS_prep_data.R
+BBS_rec_sf <- read_sf(file.path(data_dir, paste0("BBS_recent_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".shp"))) %>% # output of 1_BBS_prep_data.R
   filter(species %in% sel_species_final)
 
 # load analyses results (output of 4_BBS_niche_shift_analysis.R and 4_BBS_range_shift_analysis.R)
-# niche_results <- read.csv(file.path(data_dir, paste0("BBS_niche_shift_results_bg_",
-#                                                      ifelse(bg_spec, "spec", "US"), "_hist",
-#                                                      ifelse(all(hist_years == 1980:1983), "81-83", "96-98"),
-#                                                      ".csv")))
-niche_results <- read.csv(file.path(data_dir, "BBS_niche_shift_results_bg_spec_hist81-83_170623.csv"))
+niche_results <- read.csv(file.path(data_dir, paste0("BBS_niche_shift_results_bg_",
+                                                     ifelse(bg_spec, "spec", "US"), "_hist",
+                                                     ifelse(all(hist_years == 1980:1983), "81-83", "88-90"),
+                                                     "_070723.csv"))) # 196 (81-83), 236 (88-90)
 
+# niche_results <- read.csv(file.path(data_dir, "BBS_niche_shift_results_bg_spec_hist81-83_170623.csv")) %>% 
+#   filter(species %in% sel_species_final) # 195
 
-range_results <- read.csv(file.path(data_dir, paste0("BBS_range_shift_results_bg_", 
-                                                     ifelse(bg_spec, "spec", "US"), "_hist", 
-                                                     ifelse(all(hist_years == 1980:1983), "81-83", "96-98"),
-                                                     ".csv")))
+range_results <- read.csv(file.path(data_dir, paste0("BBS_range_shift_results_bg_",
+                                                     ifelse(bg_spec, "spec", "US"), "_hist",
+                                                     ifelse(all(hist_years == 1980:1983), "81-83", "88-90"),
+                                                     "_070723.csv")))
+#range_results <- read.csv(file.path(data_dir, "BBS_range_shift_results_bg_US_hist81-83.csv"))
 
 
 # ---------------------------- #
@@ -189,7 +191,7 @@ p_climate_change <- plot_grid(p_biplot2, p_diff_pc1, p_diff_pc2,
 )
 p_climate_change
 # save plot:
-pdf(file = file.path(plots_dir, "climate_change_PCAs", paste0("BBS_climate_change_PCA_plots_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".pdf")),
+pdf(file = file.path(plots_dir, "climate_change_PCAs", paste0("BBS_climate_change_PCA_plots_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".pdf")),
     height = 5, width = 20)
 p_climate_change
 dev.off()
@@ -266,7 +268,7 @@ sr <- ggplot(data = BBS_richness_lf) +
   scale_colour_viridis_c("species richness", na.value = NA)
 
 # save plot:
-pdf(file = file.path("plots", "species_richness", paste0("BBS_species_richness_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".pdf")),
+pdf(file = file.path("plots", "species_richness", paste0("BBS_species_richness_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".pdf")),
     height = 5, width = 10)
 sr
 dev.off()
@@ -279,7 +281,7 @@ sr_diff <- plot_grid(sr, diffplot, labels = "AUTO",
                      vjust = 7)
 
 # save plot:
-pdf(file = file.path("plots", "species_richness", paste0("BBS_species_richness_hist", ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), "_incl_diff.pdf")),
+pdf(file = file.path("plots", "species_richness", paste0("BBS_species_richness_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), "_incl_diff.pdf")),
     height = 5, width = 12)
 sr_diff
 dev.off()
@@ -296,7 +298,7 @@ niche_test_sign <- niche_results %>%
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
-  mutate(across(everything(), ~ round(.x/length(sel_species)*100, 2)))
+  mutate(across(everything(), ~ round(.x/length(sel_species_final)*100, 2)))
 
 ## range:
 range_test_sign <- range_results %>% 
@@ -304,7 +306,7 @@ range_test_sign <- range_results %>%
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
-  mutate(across(everything(), ~ round(.x/length(sel_species)*100, 2)))
+  mutate(across(everything(), ~ round(.x/length(sel_species_final)*100, 2)))
 
 # species (%) with significantly higher dynamics than by chance:
 spec_sign_higher <- c("", # niche abandonment
@@ -357,7 +359,7 @@ p <- ggplot(niche_range_df, aes(x = category, y = value*100, fill = metric)) + #
   scale_fill_viridis_d("Metrics") +
   scale_y_continuous(breaks = seq(0, 100, 20), expand = expansion(add = 10)) +
   annotate(geom = "text", label = "Species (%) with significantly higher metrics than expected by chance:", 
-           x = 0.5, y = 118, hjust = 0, vjust = 0, size = 3) + # xx
+           x = 0.5, y = 118, hjust = 0, vjust = 0, size = 3) +
   geom_text(data = labelsdat, aes(label = spec_sign_higher, y = ypos_higher),
             position = position_dodge2(width = 0.9, preserve = "single"), size = 3) +
   geom_hline(yintercept = 105) +
@@ -372,7 +374,7 @@ p
 # save plot:
 pdf(file = file.path("plots", "dynamics_boxplots", paste0("BBS_boxplot_dynamics_bg_", 
                                                           ifelse(bg_spec, "spec", "US"), "_hist",
-                                                          ifelse(all(hist_years == 1980:1983), "81-83", "96-98"),
+                                                          ifelse(all(hist_years == 1980:1983), "81-83", "88-90"),
                                                           ".pdf")),
     height = 3, width = 8)
 p
@@ -455,7 +457,7 @@ p9 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_expansion
 
 pdf(file = file.path(plots_dir, "dynamics_correlations", paste0("BBS_correlation_dynamics_bg_",
                                                                 ifelse(bg_spec, "spec", "US"), "_hist",
-                                                                ifelse(all(hist_years == 1980:1983), "81-83", "96-98"), ".pdf")),
+                                                                ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".pdf")),
     height = 5, width = 8)
 plot_grid(p1, p2, p3, p4, p5, p6, p7, p8, p9,
           align = "h",
@@ -511,21 +513,21 @@ dir_shift_hist <- ggplot(range_results, aes(x = shift_direction)) +
 
 # save plots:
 pdf(file = file.path(plots_dir, "range_shift_direction", paste0("BBS_rshift_direction", 
-                                                                ifelse(all(hist_years == 1980:1983), "81-83", "96-98"),
+                                                                ifelse(all(hist_years == 1980:1983), "81-83", "88-90"),
                                                                 ".pdf")),
     height = 5, width = 6)
 dir_shift_p
 dev.off()
 
 pdf(file = file.path(plots_dir, "range_shift_direction", paste0("BBS_rshift_direction_log", 
-                                                                ifelse(all(hist_years == 1980:1983), "81-83", "96-98"),
+                                                                ifelse(all(hist_years == 1980:1983), "81-83", "88-90"),
                                                                 ".pdf")),
     height = 5, width = 6)
 dir_shift_p2
 dev.off()
 
 pdf(file = file.path(plots_dir, "range_shift_direction", paste0("BBS_rshift_direction_histogram_hist", 
-                                                                ifelse(all(hist_years == 1980:1983), "81-83", "96-98"),
+                                                                ifelse(all(hist_years == 1980:1983), "81-83", "88-90"),
                                                                 ".pdf")),
     height = 5, width = 6)
 dir_shift_hist
@@ -540,7 +542,9 @@ p_climate_change <- plot_grid(dir_shift_p2, dir_shift_hist,
                               rel_widths = c(1.5, 1.5, 1.5),
                               rel_heights = c(0.25, 5, 5))
 
-pdf(file = file.path(plots_dir, "range_shift_direction", "BBS_rshift_direction.pdf"),
+pdf(file = file.path(plots_dir, "range_shift_direction", paste0("BBS_rshift_direction_hist", 
+                                                                ifelse(all(hist_years == 1980:1983), "81-83", "88-90"),
+                                                                ".pdf")),
     height = 3, width = 8)
 p_climate_change
 dev.off()

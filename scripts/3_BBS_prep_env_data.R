@@ -28,7 +28,7 @@ chelsa_Albers_proj <- file.path("/import", "ecoc9z", "data-zurell", "schifferle"
 if(!dir.exists(chelsa_Albers_proj)){dir.create(chelsa_Albers_proj, recursive = TRUE)}
 
 # register cores for parallel computation:
-registerDoParallel(cores = 8)
+registerDoParallel(cores = 5)
 getDoParWorkers() # check registered number of cores
 
 
@@ -38,8 +38,11 @@ getDoParWorkers() # check registered number of cores
 
 # historic and recent time periods:
 
+# chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE,
+#                           pattern = paste0("(", paste(c(1980:1983, 1988:1990, 2015:2018), collapse = "|"), ")_V.2.1.tif"))
+
 chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE,
-                          pattern = paste0("(", paste(c(1980:1983, 1995:1998, 2015:2018), collapse = "|"), ")_V.2.1.tif"))
+                          pattern = paste0("(", paste(c(1987:1990), collapse = "|"), ")_V.2.1.tif"))
 
 # names for reprojected Chelsa files:
 names <- paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "\\.tif")})), "_Albers_1km.tif")
@@ -101,7 +104,7 @@ foreach(s = 1:length(chelsa_tifs),
 
 # works when not running "module load R/4.1.0-foss-2021a" on ecoc9 beforehand
 
-time_periods <- list(1980:1983, 1995:1998, 2015:2018)
+time_periods <- list(1980:1983, 1987:1990, 2015:2018)
 
 vars <- c("pr", "tas", "tasmin", "tasmax")
 months <- str_pad(1:12, width = 2, pad = "0")
@@ -163,7 +166,7 @@ for(t in 1:length(time_periods)){
 
   # save tifs:
   terra::writeRaster(biovars_rast,
-              filename = file.path(output_folder, 
-                                   paste0("CHELSA_", names(biovars), "_", min(years), "_", max(years), "_", "1km.tif")), 
+              filename = file.path(output_folder,
+                                   paste0("CHELSA_", names(biovars), "_", min(years), "_", max(years), "_", "1km.tif")),
               overwrite = TRUE)
 }
