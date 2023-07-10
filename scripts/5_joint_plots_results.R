@@ -16,25 +16,22 @@ library(tidyverse)
 # ------------------------------ #
 
 # project data:
+data_dir <- file.path("data")
 data_dir_BBS <- file.path("data", "BBS_analysis")
 data_dir_EBBA <- file.path("data", "EBBA_analysis")
 plots_dir <- file.path("plots")
 
 # which historic time period should be used for BBS:
 hist_years <- 1980:1983 # maximum gap between historic and recent time period
-# hist_years <- 1995:1998 # similar gap between historic and recent time period as in EBBA analysis
+# hist_years <- 1987:1990 # similar gap between historic and recent time period as in EBBA analysis
 
 # environmental background: presences and absences within 500 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
 bg_spec <- TRUE
 
-#niche_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_niche_shift_results_bg_spec_hist81-83_170623.csv"))
-#range_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_range_shift_results_bg_spec_hist81-83.csv"))
 niche_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_niche_shift_results_bg_spec_hist81-83_070723.csv"))
 range_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_range_shift_results_bg_spec_hist81-83_070723.csv"))
 sel_species_BBS <- niche_results_BBS$species
 
-# niche_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_niche_shift_results_bg_spec_140623.csv"))
-# range_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_range_shift_results_bg_spec.csv"))
 niche_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_niche_shift_results_bg_spec_070723.csv"))
 range_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_range_shift_results_bg_spec_070723.csv"))
 sel_species_EBBA <- niche_results_EBBA$species
@@ -43,13 +40,11 @@ sel_species_EBBA <- niche_results_EBBA$species
 #################################
 # Climatic niche coverage
 
-#stability_BBS <- read.csv(file.path(data_dir_BBS,"species_stability_contUS_BL22_160623.csv"))
-#stability_EBBA <- read.csv(file.path(data_dir_EBBA,"species_stability_EBBA2_BL22_140623.csv"))
 stability_BBS <- read.csv(file.path(data_dir_BBS,"BBS_stability_PCA_contUS_BL22_060723.csv"))
 stability_EBBA <- read.csv(file.path(data_dir_EBBA,"species_stability_EBBA2_BL22_060723.csv"))
 
 stab_df <- data.frame(stability=c(stability_EBBA$stability, stability_BBS$stability),
-                      Region=c(rep("Europe",nrow(stability_EBBA)),rep("North America",nrow(stability_BBS))))
+                      Region=c(rep("Europe",nrow(stability_EBBA)),rep("US",nrow(stability_BBS))))
 
 p <- ggplot(stab_df, aes(x = Region, y = stability*100, fill = Region)) + # aes given inside ggplot() necessary for geom_text
   geom_boxplot(lwd = 0.1, outlier.size = 0.7, outlier.colour = "grey30", width = 0.9,
@@ -121,12 +116,12 @@ spec_sign_higher <- c(range_test_sign_EBBA$cons_p_D_A_n_sig, # range overlap
 niche_range_df <- data.frame(
   value=c(range_results_EBBA$D,range_results_BBS$D, niche_results_EBBA$D, range_results_BBS$D), 
   metric=c(rep("Range overlap",length(sel_species_BBS)+length(sel_species_EBBA)), rep ("Niche overlap", length(sel_species_BBS)+length(sel_species_EBBA))),
-  Region=rep(c( rep("Europe",length(sel_species_EBBA)),rep("North America",length(sel_species_BBS))),2)
+  Region=rep(c( rep("Europe",length(sel_species_EBBA)),rep("US",length(sel_species_BBS))),2)
   )
 
 # data set for labels:
 labelsdat <- tibble(metric = c(rep("Range overlap", 2), rep("Niche overlap", 2)),
-                    Region = factor(rep(c("Europe","North America"),2),levels = c("Europe","North America")),
+                    Region = factor(rep(c("Europe","US"),2),levels = c("Europe","US")),
                     sign_higher = spec_sign_higher,
                     sign_lower = spec_sign_lower,
                     ypos_higher = 1.10,
@@ -137,8 +132,8 @@ wilcox_niche <- wilcox.test(niche_results_EBBA$D,niche_results_BBS$D)$p.value
 wilcox_range <- wilcox.test(range_results_EBBA$D,niche_results_BBS$D)$p.value
 two.means.grouped1 <- tibble::tribble(
   ~group1, ~group2, ~p.signif,  ~y.position, ~metric,
-  "Europe", "North America", ifelse(wilcox_niche<0.001,"***",ifelse(wilcox_niche<0.01,"**",ifelse(wilcox_niche<0.05,"*",""))),  1, "Niche overlap",
-  "Europe", "North America", ifelse(wilcox_range<0.001,"***",ifelse(wilcox_range<0.01,"**",ifelse(wilcox_range<0.05,"*",""))), 1, "Range overlap"
+  "Europe", "US", ifelse(wilcox_niche<0.001,"***",ifelse(wilcox_niche<0.01,"**",ifelse(wilcox_niche<0.05,"*",""))),  1, "Niche overlap",
+  "Europe", "US", ifelse(wilcox_range<0.001,"***",ifelse(wilcox_range<0.01,"**",ifelse(wilcox_range<0.05,"*",""))), 1, "Range overlap"
 )
 
 # plot:
@@ -426,20 +421,20 @@ covariates <- c("Mass", "Hand.Wing.Index", "Trophic.Level", "Habitat.Density", "
 
 traits_res_tb <- traits_res %>%
   as_tibble() %>% 
-  mutate(term=Trait, estimate=rangeD_coef, std.error=rangeD_stderr, statistic=rangeD_coef/rangeD_stderr, p.value=rangeD_p, model=region, varimp=rangeD_varimp) %>%
+  # mutate(term=Trait, estimate=rangeD_coef, std.error=rangeD_stderr, statistic=rangeD_coef/rangeD_stderr, p.value=rangeD_p, model=region, varimp=rangeD_varimp) %>%
   # mutate(term=Trait, estimate=range_stab_coef, std.error=range_stab_stderr, statistic=range_stab_coef/range_stab_stderr, p.value=range_stab_p, model=region, varimp=range_stab_varimp) %>%
   # mutate(term=Trait, estimate=range_unf_coef, std.error=range_unf_stderr, statistic=range_unf_coef/range_unf_stderr, p.value=range_unf_p, model=region, varimp=range_unf_varimp) %>%
   # mutate(term=Trait, estimate=range_exp_coef, std.error=range_exp_stderr, statistic=range_exp_coef/range_exp_stderr, p.value=range_exp_p, model=region, varimp=range_exp_varimp) %>%
   # mutate(term=Trait, estimate=nicheD_coef, std.error=nicheD_stderr, statistic=nicheD_coef/nicheD_stderr, p.value=nicheD_p, model=region, varimp=nicheD_varimp) %>%
   # mutate(term=Trait, estimate=niche_stab_coef, std.error=niche_stab_stderr, statistic=niche_stab_coef/niche_stab_stderr, p.value=niche_stab_p, model=region, varimp=niche_stab_varimp) %>%
   # mutate(term=Trait, estimate=niche_unf_coef, std.error=niche_unf_stderr, statistic=niche_unf_coef/niche_unf_stderr, p.value=niche_unf_p, model=region, varimp=niche_unf_varimp) %>%
-  # mutate(term=Trait, estimate=niche_exp_coef, std.error=niche_exp_stderr, statistic=niche_exp_coef/niche_exp_stderr, p.value=niche_exp_p, model=region, varimp=niche_exp_varimp) %>%
+  mutate(term=Trait, estimate=niche_exp_coef, std.error=niche_exp_stderr, statistic=niche_exp_coef/niche_exp_stderr, p.value=niche_exp_p, model=region, varimp=niche_exp_varimp) %>%
   select(term, estimate, std.error, statistic, p.value, model, varimp) %>% 
   filter(term %in% covariates)
 varimp_US <- traits_res_tb %>% filter(model=="US") %>% select(varimp)
 varimp_Europe <- traits_res_tb %>% filter(model=="Europe") %>% select(varimp)
   
-# quartz(w=5,h=3)
+quartz(w=5,h=3)
 dwplot(traits_res_tb, 
        vline = geom_vline(xintercept = 0, colour = "grey60", linetype = 2)
        ) %>% 
@@ -454,14 +449,14 @@ dwplot(traits_res_tb,
       Centroid.Latitude = "Breeding latitude",
       niche_breadth_zcor = "Niche breadth"
     )) + 
-  ggtitle("Range overlap - Schoener's D") +
+  # ggtitle("Range overlap - Schoener's D") +
   # ggtitle("Range stability") +
   # ggtitle("Range unfilling") +
   # ggtitle("Range expansion") +
   # ggtitle("Niche overlap - Schoener's D") +
   # ggtitle("Niche stability") +
   # ggtitle("Niche unfilling") +
-  # ggtitle("Niche expansion") +
+  ggtitle("Niche expansion") +
   theme_bw(base_size = 12) + 
   xlab("Coefficient Estimate") + 
   ylab("") + 

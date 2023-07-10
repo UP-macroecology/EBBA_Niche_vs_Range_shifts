@@ -16,20 +16,20 @@ plots_dir <- file.path("plots")
 # prepare trait data and range and niche metrics
 
 # Niche and range analyses results for EBBA species
-niche_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_niche_shift_results_bg_spec_140623.csv")) %>%
+niche_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_niche_shift_results_bg_spec_070723.csv")) %>%
   rename(niche_D = D) %>%
   select(species, niche_D, niche_stability_std, niche_unfilling_std, niche_expansion_std)
-range_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_range_shift_results_bg_spec.csv")) %>%
+range_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_range_shift_results_bg_spec_070723.csv")) %>%
   rename(range_D = D, range_shift = Eucl_distance) %>%
   select(species, range_shift, range_D, range_stability_std, range_unfilling_std, range_expansion_std)
 # EBBA species list
 sel_species_EBBA <- niche_results_EBBA$species
 
 # Niche and range analyses results for EBBA species
-niche_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_niche_shift_results_bg_spec_hist81-83_170623.csv")) %>%
+niche_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_niche_shift_results_bg_spec_hist81-83_070723.csv")) %>%
   rename(niche_D = D) %>%
   select(species, niche_D, niche_stability_std, niche_unfilling_std, niche_expansion_std)
-range_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_range_shift_results_bg_spec_hist81-83.csv")) %>%
+range_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_range_shift_results_bg_spec_hist81-83_070723.csv")) %>%
   rename(range_D = D, range_shift = Eucl_distance) %>%
   select(species, range_shift, range_D, range_stability_std, range_unfilling_std, range_expansion_std)
 # BBS species list
@@ -43,13 +43,13 @@ sel_species_BBS <- sel_species_BBS[!sel_species_BBS %in% remove_spp]
 # Trait data for EBBA species
 avonet_EBBA <- read.csv(file.path(data_dir_EBBA, "AVONET_EBBA_species.csv")) %>%
   filter(Species1 %in% sel_species_EBBA)
-niche_breadth_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_niche_breadth.csv")) %>%
+niche_breadth_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_niche_breadth_060723.csv")) %>%
   filter(species %in% sel_species_EBBA)
 
 # Trait data for BBS species
 avonet_BBS <- read.csv(file.path(data_dir_BBS, "AVONET_BBS_species.csv")) %>%
   filter(BBS_species %in% sel_species_BBS)
-niche_breadth_BBS <- read.csv(file.path(data_dir_BBS, "BBS_niche_breadth.csv")) %>%
+niche_breadth_BBS <- read.csv(file.path(data_dir_BBS, "BBS_niche_breadth_060723.csv")) %>%
   filter(species %in% sel_species_BBS)
 
 # Combine trait data sets and select relevant traits
@@ -247,17 +247,22 @@ save(null.rangeD, lm.rangeD, step.lm.rangeD,
 
 # Helper functions:
 R2 <- function(mod0, mod1){
-  df1 <- unlist(summary(mod1))$fstatistic.dendf
-  df0 <- unlist(summary(mod0))$fstatistic.dendf
-  
+  p <- length(mod1$coefficients)
+  n <- length(mod1$fitted)
+ 
   R2 <- round(1-sum(mod1$residuals^2)/sum(mod0$residuals^2), 3)
-  R2adj <- round(1 - ((sum(mod1$residuals^2)/df1) / (sum(mod0$residuals^2)/df0)), 2)
+  R2adj <- 1 - ((n - 1)/(n - p)) * (1 - R2)
+  R2adj <- ifelse(R2adj<0, 0, R2adj)
   return(c(R2=R2, R2adj=R2adj)) 
 }
 
 R2glm <- function(model){
+  p <- length(model$coefficients)
+  n <- length(model$fitted)
+  
   R2 <- round(1 - ( model$deviance / model$null.deviance ), 2)
-  R2adj <- round(1 - ( (model$deviance / model$df.residual) / (model$null.deviance / model$df.null)), 2)
+  R2adj <- 1 - ((n - 1)/(n - p)) * (1 - R2)
+  R2adj <- ifelse(R2adj<0, 0, R2adj)
   return(c(R2=R2, R2adj=R2adj)) 
 }
 
@@ -339,8 +344,8 @@ for (i in 1:length(step.varImp.allmetrics))	{
   r2a <- tt[[1]][2] - tt$randR2adj
   # Rescale the values (?)
   if (ncol(r2)>1) {
-    r2 <- t(apply(r2, 1, function(x) x/sum(x)))
-    r2a <- t(apply(r2a, 1, function(x) x/sum(x)))
+    r2 <- t(apply(r2, 1, function(x) {x=ifelse(x<0,0,x); x/sum(x)} ))
+    r2a <- t(apply(r2a, 1, function(x) {x=ifelse(x<0,0,x); x/sum(x)} ))
     # Get the means and sd
     Mr2 <- apply(r2, 2, mean) ; Mr2a <- apply(r2a, 2, mean)
     Sr2 <- apply(r2, 2, sd) ; Sr2a <- apply(r2a, 2, sd) } else {
@@ -390,7 +395,7 @@ for (i in 1:length(MOD)) {
   results_TraitAnal_df[c(1,which(covariates %in% explvar)+1),1+i*4-3] <- round(as.numeric(modl$coefficients),3)
   
   # store R2 of model
-  results_TraitAnal_df[nrow(results_TraitAnal_df)-1,1+i*4-3] <- as.numeric(R2(ETP(MOD_null[i]),modl))
+  results_TraitAnal_df[nrow(results_TraitAnal_df)-1,1+i*4-3] <- R2(ETP(MOD_null[i]),modl)[[1]]
   
   # store lambda of model
   results_TraitAnal_df[nrow(results_TraitAnal_df),1+i*4-3] <- round(modl$optpar,3)
@@ -416,11 +421,13 @@ traits_all_all <- traits_all
 phylo_all_all <- phylo_all
 
 # subset to single region?
+reg <- 'US' 
+# reg <- 'Europe'
 traits_all <- traits_all_all %>%
-  filter(region=='US') # 'Europe'
-models_filename <- "phylo_trait_models_US.RData"
-traitresults_csvname <- "results_TraitAnal_df_US.csv"
-traitsimp_filename <- "VarImp_phylo_trait_models_US.RData"
+  filter(region==reg) # 'Europe'
+models_filename <- paste0("phylo_trait_models_",reg,".RData")
+traitresults_csvname <- paste0("results_TraitAnal_df_",reg,".csv")
+traitsimp_filename <- paste0("VarImp_phylo_trait_models_",reg,".RData")
 
 # also remove from phylogeny
 phylo_all= drop.tip(phylo_all_all,phylo_all_all$tip.label[!phylo_all_all$tip.label %in% sub(' ','_',traits_all$phylo_species)])
@@ -428,9 +435,6 @@ phylo_all= drop.tip(phylo_all_all,phylo_all_all$tip.label[!phylo_all_all$tip.lab
 
 # add rownames - needed for matching phylogenetic information
 rownames(traits_all) = sub(' ','_',traits_all$phylo_species)
-
-# Define logit function
-logit = function(x) {x=ifelse(x<0.0001,0.0001,ifelse(x>0.9999,.9999,x));log(x/(1 - x))}
 
 # Standardise traits
 traits_all$Mass <- as.numeric(scale(traits_all$Mass))
@@ -653,8 +657,8 @@ for (i in 1:length(step.varImp.allmetrics))	{
   r2a <- tt[[1]][2] - tt$randR2adj
   # Rescale the values (?)
   if (ncol(r2)>1) {
-    r2 <- t(apply(r2, 1, function(x) x/sum(x)))
-    r2a <- t(apply(r2a, 1, function(x) x/sum(x)))
+    r2 <- t(apply(r2, 1, function(x) {x=ifelse(x<0,0,x); x/sum(x)} ))
+    r2a <- t(apply(r2a, 1, function(x) {x=ifelse(x<0,0,x); x/sum(x)} ))
     # Get the means and sd
     Mr2 <- apply(r2, 2, mean) ; Mr2a <- apply(r2a, 2, mean)
     Sr2 <- apply(r2, 2, sd) ; Sr2a <- apply(r2a, 2, sd) } else {
@@ -704,7 +708,7 @@ for (i in 1:length(MOD)) {
   results_TraitAnal_df[c(1,which(covariates %in% explvar)+1),1+i*4-3] <- round(as.numeric(modl$coefficients),3)
   
   # store R2 of model
-  results_TraitAnal_df[nrow(results_TraitAnal_df)-1,1+i*4-3] <- as.numeric(R2(ETP(MOD_null[i]),modl))
+  results_TraitAnal_df[nrow(results_TraitAnal_df)-1,1+i*4-3] <- R2(ETP(MOD_null[i]),modl)[[1]]
   
   # store lambda of model
   results_TraitAnal_df[nrow(results_TraitAnal_df),1+i*4-3] <- round(modl$optpar,3)

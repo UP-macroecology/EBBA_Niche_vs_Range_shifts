@@ -363,21 +363,21 @@ yrange <- range(metrics_df$range_expansion_std)
 p1 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_unfilling_std)) +
   geom_point() + geom_smooth(method = "lm") +
   theme_bw() + xlab("niche U") + ylab("range E") +
-  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor1$estimate,2),ifelse(cor1$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor1$estimate,2),ifelse(cor1$p.value<0.05,"*","")), vjust=1, hjust=1, color="black")
 cor2 <- with(metrics_df,cor.test(range_expansion_std, niche_stability_std))
 xrange <- range(metrics_df$niche_stability_std)
 yrange <- range(metrics_df$range_expansion_std)
 p2 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_stability_std)) +
   geom_point() + geom_smooth(method = "lm") +
   theme_bw() + xlab("niche S") + ylab("range E") +
-  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor2$estimate,2),ifelse(cor2$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor2$estimate,2),ifelse(cor2$p.value<0.05,"*","")), vjust=1, hjust=1, color="black")
 cor3 <- with(metrics_df,cor.test(range_expansion_std, niche_expansion_std))
 xrange <- range(metrics_df$niche_expansion_std)
 yrange <- range(metrics_df$range_expansion_std)
 p3 <- ggplot(data = metrics_df, aes(y = range_expansion_std, x = niche_expansion_std)) +
   geom_point() + geom_smooth(method = "lm") +
   theme_bw() + xlab("niche E") + ylab("range E") +
-  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor3$estimate,2),ifelse(cor3$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor3$estimate,2),ifelse(cor3$p.value<0.05,"*","")), vjust=1, hjust=1, color="black")
 
 cor4 <- with(metrics_df,cor.test(range_stability_std, niche_unfilling_std))
 xrange <- range(metrics_df$niche_unfilling_std)
@@ -385,21 +385,21 @@ yrange <- range(metrics_df$range_stability_std)
 p4 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_unfilling_std)) +
   geom_point() + geom_smooth(method = "lm") +
   theme_bw() + xlab("niche U") + ylab("range S") +
-  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor4$estimate,2),ifelse(cor4$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor4$estimate,2),ifelse(cor4$p.value<0.05,"*","")), vjust=1, hjust=1, color="black")
 cor5 <- with(metrics_df,cor.test(range_stability_std, niche_stability_std))
 xrange <- range(metrics_df$niche_stability_std)
 yrange <- range(metrics_df$range_stability_std)
 p5 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_stability_std)) +
   geom_point() + geom_smooth(method = "lm") +
   theme_bw() + xlab("niche S") + ylab("range S") +
-  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.95), label = paste0("r=",round(cor5$estimate,2),ifelse(cor5$p.value<0.05,"*","")), vjust=0, hjust=1, color="red")
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.95), label = paste0("r=",round(cor5$estimate,2),ifelse(cor5$p.value<0.05,"*","")), vjust=0, hjust=1, color="black")
 cor6 <- with(metrics_df,cor.test(range_stability_std, niche_expansion_std))
 xrange <- range(metrics_df$niche_expansion_std)
 yrange <- range(metrics_df$range_stability_std)
 p6 <- ggplot(data = metrics_df, aes(y = range_stability_std, x = niche_expansion_std)) +
   geom_point() + geom_smooth(method = "lm") +
   theme_bw() + xlab("niche E") + ylab("range S") +
-  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor6$estimate,2),ifelse(cor6$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor6$estimate,2),ifelse(cor6$p.value<0.05,"*","")), vjust=1, hjust=1, color="black")
 
 cor7 <- with(metrics_df,cor.test(range_unfilling_std, niche_unfilling_std))
 xrange <- range(metrics_df$niche_unfilling_std)
@@ -407,21 +407,21 @@ yrange <- range(metrics_df$range_unfilling_std)
 p7 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_unfilling_std)) +
   geom_point() + geom_smooth(method = "lm") +
   theme_bw() + xlab("niche U") + ylab("range U") +
-  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor7$estimate,2),ifelse(cor7$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor7$estimate,2),ifelse(cor7$p.value<0.05,"*","")), vjust=1, hjust=1, color="black")
 cor8 <- with(metrics_df,cor.test(range_unfilling_std, niche_stability_std))
 xrange <- range(metrics_df$niche_stability_std)
 yrange <- range(metrics_df$range_unfilling_std)
 p8 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_stability_std)) +
   geom_point() + geom_smooth(method = "lm") +
   theme_bw() + xlab("niche S") + ylab("range U") +
-  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor8$estimate,2),ifelse(cor8$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor8$estimate,2),ifelse(cor8$p.value<0.05,"*","")), vjust=1, hjust=1, color="black")
 cor9 <- with(metrics_df,cor.test(range_unfilling_std, niche_expansion_std))
 xrange <- range(metrics_df$niche_expansion_std)
 yrange <- range(metrics_df$range_unfilling_std)
 p9 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_expansion_std)) +
   geom_point() + geom_smooth(method = "lm") +
   theme_bw() + xlab("niche E") + ylab("range U") +
-  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor9$estimate,2),ifelse(cor9$p.value<0.05,"*","")), vjust=1, hjust=1, color="red")
+  geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor9$estimate,2),ifelse(cor9$p.value<0.05,"*","")), vjust=1, hjust=1, color="black")
 
 
 

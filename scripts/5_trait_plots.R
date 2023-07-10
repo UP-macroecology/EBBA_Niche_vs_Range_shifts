@@ -15,7 +15,7 @@ dataset <- "BBS"
 
 # BBS: which historic time period should be used:
 hist_years <- 1980:1983
-#hist_years <- 1995:1998
+#hist_years <- 1987:1990
 
 # for now only plots for species-specific background and BBS hist = 1981-1983 saved xx
 
