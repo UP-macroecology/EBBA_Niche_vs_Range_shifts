@@ -12,8 +12,8 @@ library(ade4)
 #            Set-up:          ####
 # ------------------------------ #
 
-#dataset <- "EBBA"
-dataset <- "BBS"
+dataset <- "EBBA"
+#dataset <- "BBS"
 
 # project data:
 if(dataset == "EBBA"){
@@ -36,9 +36,6 @@ registerDoParallel(cores = 2)
 # Tobias et al. 2022: AVONET: morphological, ecological and geographical data for all birds.
 # I downloaded the AVONET dataset from https://figshare.com/s/b990722d72a26b5bfead -> AVONET Supplementary dataset 1
 # (link in publication)
-# (I didn't use the package "traitdata" to access AVONET because the package seems to use 
-# the data provided to reproduce the analyses of Tobias at al. 2022 instead of the full AVONET data set
-# (e.g. species names only available in one unspecified format while main AVONET data set provides 3 formats))
 
 # sheet with taxonomy according to Birdlife International:
 avonet_BL <- readxl::read_xlsx(path = file.path("data", "AVONET Supplementary dataset 1.xlsx"),
@@ -60,7 +57,7 @@ if(dataset == "EBBA"){
 } else {
   
   # selected species:
-  BBS_species_final <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22_060723.csv")) %>% 
+  BBS_species_final <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22.csv")) %>% 
     filter(stability >= 0.5) %>% 
     pull(species)
   
@@ -146,7 +143,6 @@ if(dataset == "EBBA"){
 if(dataset == "BBS"){
   
   years <- 2015:2018
-  # years <- 2016:2018
   
   bioclim_folder <- file.path(data_dir, paste0("Bioclim_global_", min(years), "_", max(years)))
   
@@ -155,7 +151,7 @@ if(dataset == "BBS"){
   if(!dir.exists(plots_dir)){dir.create(plots_dir, recursive = TRUE)}
   
   # selected species (both versions of historic time period):
-  species_filtered <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22_060723.csv")) %>% 
+  species_filtered <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22.csv")) %>% 
     filter(stability >= 0.5) %>% 
     pull(species) %>%
     sub(" ", "_", .)
@@ -247,20 +243,4 @@ niche_breadth_df <- foreach(i = 1:length(species_filtered),
                             }
 
 # save resulting data frame:
-write.csv(niche_breadth_df, file = file.path(data_dir, paste0(dataset, "_niche_breadth_060723.csv")), row.names = FALSE)
-
-
-## explorations: ---------------------------------------------------------------
-
-EBBA_nb <- read.csv(file.path("data", "EBBA_analysis", "EBBA_niche_breadth.csv"))
-BBS_nb <- read.csv(file.path("data", "BBS_analysis", "BBS_niche_breadth.csv"))
-
-hist(EBBA_nb$niche_breadth_zcor)
-hist(BBS_nb$niche_breadth_zcor)
-
-# some species are included in EBBA as well as in BBS analysis,
-# niche breadth differs because of different years on which bioclim variables are based on
-EBBA_BBS_specs <- EBBA_nb %>% 
-  inner_join(BBS_nb, by = c("species"))
-
-cor.test(EBBA_BBS_specs$niche_breadth_zcor.x, EBBA_BBS_specs$niche_breadth_zcor.y) # highly correlated
+write.csv(niche_breadth_df, file = file.path(data_dir, paste0(dataset, "_niche_breadth.csv")), row.names = FALSE)

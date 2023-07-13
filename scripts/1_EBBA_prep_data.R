@@ -8,17 +8,14 @@ library(sf)
 # -------------------------------------------------- #
 
 # preliminary = analysis to identify suitable species for which we request EBBA1-EBBA2 change dataset
-# (EBBA1-EBBA2 change dataset used for main niche vs. range shift analysis)
+# (EBBA1-EBBA2 change dataset used for main niche vs. range shift analysis,
+# but can also be run using publicly available EBBA1 and EBBA 2 data)
 
 
 ## load and explore EBBA data: -------------------------------------------------
 
 # datashare:
 datashare_EBCC <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data", "biodat", "distribution", "EBCC")
-
-# EBBA1: 3950 cells and 495 species according to https://ebba2.info/about/ebba1/
-# (3912 locations in GBIF data -> ?)
-# EBBA2: 5303 grid cells (5079 with data ->?), 596 species (data in csv-file, locations in shapefile)
 
 ### EBBA1 data: --------------------------------------
 
@@ -32,7 +29,6 @@ library("rnaturalearth")
 library("rnaturalearthdata")
 library(ggplot2)
 
-unique(EBBA1$issue) # 7 issues
 table(EBBA1$issue)
 # https://gbif.github.io/gbif-api/apidocs/org/gbif/api/vocabulary/OccurrenceIssue.html:
 # COORDINATE ROUNDED = Original coordinate modified by rounding to 5 decimals.
@@ -242,7 +238,7 @@ nrow(EBBA2_sf_country_code) # 579'487
 nrow(EBBA2_clipped_sf) # 365'389
 
 # save:
-st_write(EBBA1_clipped_sf, file.path("data", "EBBA_analysis", "EBBA1_prelim_comparable_cells.shp")) # save also before taxonomic harmonization because otherwise 5 EBBA2 cells are dropped that don't contain any record of comparable species
+st_write(EBBA1_clipped_sf, file.path("data", "EBBA_analysis", "EBBA1_prelim_comparable_cells.shp")) # save before taxonomic harmonization because otherwise 5 EBBA2 cells are dropped that don't contain any record of comparable species
 st_write(EBBA2_clipped_sf, file.path("data", "EBBA_analysis", "EBBA2_prelim_comparable_cells.shp"))
 
 
@@ -318,6 +314,8 @@ st_write(EBBA2_taxunif_sf, file.path("data", "EBBA_analysis", "EBBA2_prelim_comp
 # --------------------------------------------- #
 #            EBBA change dataset:            ####
 # --------------------------------------------- #
+
+# requested for species selected with 2_3_EBBA_species_filtering_5_climatic_niche_analysis.R
 
 # Metadata: 
 # Change: A = Loss, B = Apparent Loss, C = Stable, D = Apparent Stable, E = Gain, F = Apparent Gain, G = Present in EBBA1 or EBBA2 but taxonomic assignment uncertain or wrong

@@ -2,7 +2,7 @@
 # Exclude species whose climatic niche is not well covered in Europe:
 # we compare the European distribution data (EBBA2) with the Birdlife range maps (of 2022),
 # we use the area of the Birdlife range maps where a species is considered extant throughout the year (for resident species) 
-# or extant during the breeding season (for migrants).
+# or extant during the breeding season (for migrants). We exclude species considered non-native throughout the EBBA region.
 # To assess a species climatic niche we use Chelsa data.
 
 # notes:
@@ -34,7 +34,7 @@ data_dir <- file.path("data", "EBBA_analysis")
 datashare_EBCC <- file.path("/mnt", "ibb_share", "zurell", "biodat", "distribution", "EBCC")
 #datashare_EBCC <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data", "biodat", "distribution", "EBCC")
 
-# Bird life range maps:
+# Birdlife range maps:
 datashare_Birdlife <- file.path("/mnt", "ibb_share", "zurell", "biodat", "distribution", "Birdlife", "BOTW_2022")
 #datashare_Birdlife <- file.path("//ibb-fs01.ibb.uni-potsdam.de", "daten$", "AG26", "Arbeit", "datashare", "data", "biodat", "distribution", "Birdlife", "BOTW_2022")
 
@@ -117,8 +117,6 @@ foreach(s = 1:length(species_filtered),
 # project raster and change resolution to 50 km:
 
 # global equal area projection (Interrupted Goode Homolosine)
-# used by SoilGrids (Homolosine projection applied to the WGS84 datum)
-# from: https://www.isric.org/explore/soilgrids/faq-soilgrids#How_can_I_use_the_Homolosine_projection
 homolosine <- 'PROJCS["Homolosine",
                      GEOGCS["WGS 84",
                             DATUM["WGS_1984",
@@ -151,7 +149,7 @@ foreach(i = 1:length(BL_range_shps),
           gdalUtilities::gdal_rasterize(src_datasource = file.path(BL_range_shps[i]),
                                         dst_filename = file.path(data_dir, "Birdlife_ranges_EBBA", "Raster_2022", paste0(species_filtered[i], "_WGS84.tif")),
                                         burn = 1,
-                                        tr = c(0.1, 0.1), # target resolution in degrees (same unit as src_datasource) (0.1° enough since final resolution will be 50 km)
+                                        tr = c(0.1, 0.1), # target resolution in degrees (same unit as src_datasource)
                                         a_nodata = -99999) # value for cells with missing data
 
           # project and change resolution to 50 km (as EBBA):
@@ -173,16 +171,16 @@ foreach(i = 1:length(BL_range_shps),
 gdalUtilities::gdal_rasterize(src_datasource = file.path(datashare_EBCC, "EBBA2", "ebba2_grid50x50_v1", "ebba2_grid50x50_v1.shp"),
                               dst_filename = file.path(data_dir, "EBBA2.tif"),
                               burn = 1,
-                              tr = c(50000, 50000), # target resolution in degrees (same unit as src_datasource)
-                              a_nodata = -99999) # value for cells with missing data
+                              tr = c(50000, 50000),
+                              a_nodata = -99999)
 
 # project and change resolution to 50 km:
 gdalUtilities::gdalwarp(srcfile = file.path(data_dir, "EBBA2.tif"),
                         dstfile = file.path(data_dir, "EBBA2_hom.tif"),
                         overwrite = TRUE,
-                        tr = c(50000, 50000), # target resolution in meters (same as unit of target srs)
-                        r = "max", # resampling method
-                        t_srs = homolosine # target spatial reference
+                        tr = c(50000, 50000),
+                        r = "max",
+                        t_srs = homolosine
 )
 
 
@@ -340,6 +338,73 @@ writeRaster(biovars_rast,
 #     4. Climatic niche analyses:      ####
 # --------------------------------------- #
 
+# pre-step: exclude species considered non-native throughout the EBBA region:
+
+## check whether any of the occurrences are in the part of Birdlife range where species is non-native (origin != 1)
+
+## Birdlife range files:
+BL_range_shps <- list.files(file.path(data_dir, "Birdlife_ranges_EBBA", "Shapefiles_2022"), full.names = TRUE, pattern = ".shp$")
+
+## data frame to store results:
+native_spec_df <- data.frame("species" = species_filtered,
+                             "native" = NA)
+
+for(i in 1:length(species_filtered)){
+  
+  print(i)
+  
+  # read Birdlife range:
+  BL_range_sf <- read_sf(grep(BL_range_shps, pattern = species_filtered[i], value = TRUE))
+  
+  # are there parts of range where species is non-native?:
+  anynonnative <- BL_range_sf %>% 
+    filter(origin != 1) %>% 
+    nrow
+  
+  if(anynonnative == 0){
+    native_spec_df$native[i] <- 1
+    next
+  }
+  
+  # EBBA occurrences:
+  EBBA_spec_occ <- st_read(file.path(data_dir, "EBBA2_prelim_comparable_harmonized.shp")) %>%  # output of 1_EBBA_prep_data.R; same results for EBBA1 xx?
+    filter(species == sub("_", " ", species_filtered[i])) %>% 
+    st_transform(crs = crs(BL_range_sf))
+  
+  # part of Birdlife range where species is non-native:
+  BL_range_sf_nonnative <- BL_range_sf %>% 
+    filter(origin != 1)
+  #plot(st_geometry(BL_range_sf_nonnative))
+  #points(EBBA_spec_occ, col = "red")
+  
+  # are there occurrences in non-native part of the range?:
+  anynonnative <- st_intersection(EBBA_spec_occ, st_make_valid(BL_range_sf_nonnative)) %>% 
+    nrow
+  
+  if(anynonnative != 0){
+    native_spec_df$native[i] <- 0
+  } else {
+    native_spec_df$native[i] <- 1
+  }
+}
+
+nonnatives <- native_spec_df %>% 
+  filter(native != 1) %>%  
+  pull(species)
+
+## visually checked BirdLife maps for whether species is considered non-native throughout the EBBA region (excluded) or only in small parts (included in further analyses)
+## the following species are excluded:
+species_filtered <- species_filtered[which(!species_filtered %in% c("Aix_galericulata",
+                                                "Alopochen_aegyptiaca",
+                                                "Branta_canadensis",
+                                                "Columba_livia",
+                                                "Estrilda_astrild",
+                                                "Gypaetus_barbatus",
+                                                "Oxyura_jamaicensis",
+                                                "Phasianus_colchicus",
+                                                "Psittacula_krameri",
+                                                "Syrmaticus_reevesii"))]
+
 # calculate stability index: how much of the species global climatic niche is covered in Europe
 
 # read comparable EBBA2 data:
@@ -348,9 +413,6 @@ EBBA2_comp_sf <- st_read(file.path(data_dir, "EBBA2_prelim_comparable_cells.shp"
 
 # files of rasterized and projected Birdlife ranges:
 BL_range_tifs
-
-# data frame for PCA eigenvalues
-#EBBA_global_niche_PCA <- data.frame(species=species_filtered, PCA_percent=NA)
 
 # loop over species:
 stability_df <- foreach(i = 1:length(species_filtered),
@@ -454,18 +516,18 @@ stability_df <- foreach(i = 1:length(species_filtered),
                             stability_spec_df
                           }
 
-# save species stability values :
-write.csv(stability_df, 
-          file = file.path(data_dir, "species_stability_EBBA2_BL22_060723.csv"),
-          row.names = FALSE)
-#save PCA eigen value sums:
-# write.csv(EBBA_global_niche_PCA, 
-#           file = file.path(data_dir, "EBBA_global_niche_PCA.csv"), 
-#           row.names = FALSE)
 
+# save species stability values and PCA eigen value sums:
+write.csv(stability_df, 
+          file = file.path(data_dir, "species_stability_PCA_EBBA2_BL22.csv"),
+          row.names = FALSE)
 
 # plot stability:
 plot(sort(stability_df$stability, decreasing = TRUE),
      ylab = "stability", xlab = "number of species", las = 1)
 abline(h = 0.7, col = "red")
 abline(h = 0.5, col = "blue")
+
+# following steps:
+# - for the species with stability value >= 0.5 EBBA change data were requested,
+# - these were again filtered according to steps 1-4, to do this, 2_1_EBBA_species_filtering_1-4.R was run again using final_filtering <- TRUE

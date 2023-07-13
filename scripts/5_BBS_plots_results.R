@@ -18,8 +18,8 @@ data_dir <- file.path("data", "BBS_analysis")
 plots_dir <- file.path("plots")
 
 # which historic time period should be used:
-hist_years <- 1980:1983 # maximum gap between historic and recent time period
-#hist_years <- 1987:1990 # similar gap between historic and recent time period as in EBBA analysis
+#hist_years <- 1980:1983 # maximum gap between historic and recent time period
+hist_years <- 1987:1990 # similar gap between historic and recent time period as in EBBA analysis
 
 # environmental background: presences and absences within 500 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
 bg_spec <- TRUE
@@ -30,7 +30,7 @@ bg_spec <- TRUE
 # ---------------------------- #
 
 # species selection: 
-sel_species <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22_060723.csv")) %>% 
+sel_species <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22.csv")) %>% 
   filter(stability >= 0.5) %>% 
   pull(species) %>% 
   sort
@@ -50,16 +50,12 @@ BBS_rec_sf <- read_sf(file.path(data_dir, paste0("BBS_recent_centr_proj_hist", i
 niche_results <- read.csv(file.path(data_dir, paste0("BBS_niche_shift_results_bg_",
                                                      ifelse(bg_spec, "spec", "US"), "_hist",
                                                      ifelse(all(hist_years == 1980:1983), "81-83", "88-90"),
-                                                     "_070723.csv"))) # 196 (81-83), 236 (88-90)
-
-# niche_results <- read.csv(file.path(data_dir, "BBS_niche_shift_results_bg_spec_hist81-83_170623.csv")) %>% 
-#   filter(species %in% sel_species_final) # 195
+                                                     ".csv"))) # 195 (81-83), 233 (88-90)
 
 range_results <- read.csv(file.path(data_dir, paste0("BBS_range_shift_results_bg_",
                                                      ifelse(bg_spec, "spec", "US"), "_hist",
                                                      ifelse(all(hist_years == 1980:1983), "81-83", "88-90"),
-                                                     "_070723.csv")))
-#range_results <- read.csv(file.path(data_dir, "BBS_range_shift_results_bg_US_hist81-83.csv"))
+                                                     ".csv")))
 
 
 # ---------------------------- #
@@ -100,16 +96,6 @@ pca.env <- dudi.pca(rbind(hist_climate_data, rec_climate_data)[, paste0("bio", 1
                     nf = 2) # number of axes
 
 # plot(x = pca.env$li$Axis1, y = pca.env$li$Axis2)
-# nrow(EBBA1_climate_data)
-# nrow(EBBA2_climate_data)
-# nrow(pca.env$li)
-
-ecospat::ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig)
-
-p_biplot1 <- factoextra::fviz_pca_var(pca.env,
-                                      gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-                                      repel = TRUE,
-                                      title = "")     # Avoid text overlapping
 
 p_biplot2 <- factoextra::fviz_pca_biplot(pca.env, repel = TRUE,
                                          col.var = "black", # Variables color
@@ -189,7 +175,7 @@ p_climate_change <- plot_grid(p_biplot2, p_diff_pc1, p_diff_pc2,
                               rel_widths = c(1.5, 1.5, 1.5),
                               rel_heights = c(0.25, 5, 5)
 )
-p_climate_change
+
 # save plot:
 pdf(file = file.path(plots_dir, "climate_change_PCAs", paste0("BBS_climate_change_PCA_plots_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".pdf")),
     height = 5, width = 20)
@@ -220,24 +206,9 @@ BBS_rec_richness <- BBS_rec_sf %>%
 world <- rnaturalearth::ne_countries(returnclass = "sf") %>% 
   st_transform("ESRI:102003")
 
-# historic period richness:
-ggplot() +
-  geom_sf(data = BBS_hist_richness, aes(colour = hist_richness)) +
-  scale_colour_viridis_c("richness historic period", na.value = NA) +
-  geom_sf(data = world, colour = "gray20", fill = NA) +
-  lims(x = c(-2400000, 2200000), y = c(-1300000, 1600000))
-
-# recent period richness:
-ggplot() +
-  geom_sf(data = BBS_rec_richness, aes(colour = rec_richness)) +
-  scale_colour_viridis_c("richness recent period", na.value = NA) +
-  geom_sf(data = world, colour = "gray20", fill = NA) +
-  lims(x = c(-2400000, 2200000), y = c(-1300000, 1600000))
-
 # join richness by cell ID:
 BSS_richness_diff <- BBS_hist_richness %>% 
   left_join(st_drop_geometry(BBS_rec_richness)) %>% 
-  # difference EBBA 1 and EBBA 2 richness:
   mutate(diff = rec_richness - hist_richness)
 
 limit <- max(abs(BSS_richness_diff$diff), na.rm = TRUE) * c(-1, 1) # to center colour scale
@@ -385,7 +356,7 @@ dev.off()
 
 metrics_df <- range_results %>% 
   left_join(niche_results, by = c("species" = "species")) %>% 
-  select(range_stability_std, range_unfilling_std, range_expansion_std,
+  dplyr::select(range_stability_std, range_unfilling_std, range_expansion_std,
          niche_stability_std, niche_unfilling_std, niche_expansion_std)
 
 cor1 <- with(metrics_df,cor.test(range_expansion_std, niche_unfilling_std))
@@ -470,7 +441,7 @@ dev.off()
 
 ## direction of range shifts: ----
 
-# same for using species-specific background and whole EBBA area as background
+# same for using species-specific background and whole cont. US as background
 
 # one line for each species:
 dir_shift_p <- ggplot(range_results, aes(x = shift_direction, y = Eucl_distance/1000)) +
@@ -548,27 +519,3 @@ pdf(file = file.path(plots_dir, "range_shift_direction", paste0("BBS_rshift_dire
     height = 3, width = 8)
 p_climate_change
 dev.off()
-
-
-
-## for which species are results significant: ----
-
-spec_range_sign_stab <- range_results %>% 
-  dplyr::select(c(species, matches("_p_"))) %>% 
-  filter(cons_p_S_NA <= 0.05)  %>% # higher than by chance
-  pull(species)
-
-spec_range_sign_stab <- range_results %>% 
-  dplyr::select(c(species, matches("_p_"))) %>% 
-  filter(cons_p_S_A <= 0.05)  %>% # higher than by chance
-  pull(species)
-
-spec_niche_sign_stab <- niche_results %>% 
-  dplyr::select(c(species, matches("_p_"))) %>% 
-  filter(cons_p_S_NA <= 0.05)  %>% # higher than by chance
-  pull(species)
-
-spec_niche_sign_low_unf <- niche_results %>% 
-  dplyr::select(c(species, matches("_p_"))) %>% 
-  filter(cons_p_U_NA <= 0.05)  %>% # higher than by chance
-  pull(species)

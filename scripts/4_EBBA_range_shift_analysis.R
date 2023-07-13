@@ -56,7 +56,7 @@ results_file <- file.path(data_dir, paste0("EBBA_range_shift_results_bg_", ifels
 #          Load data:       ####
 # ---------------------------- #
 
-# comparable EBBA cells:
+# comparable EBBA cells (if EBBA change dataset is not available use EBBA1_prelim_comparable_cells.shp (output of 1_EBBA_prep_data.R))
 EBBA_cells <- read_sf(file.path(data_dir, "EBBA_change.shp")) %>% # output of 1_EBBA_prep_data.R
   select(-species, -Change) %>% 
   distinct(cell50x50, .keep_all = TRUE) # keep geometry; would be the same when using EBBA2
@@ -66,11 +66,11 @@ load(file = file.path(data_dir, "EBBA1_EBBA2_prep_steps1-4_final.RData")) # outp
 sel_species <- sort(unique(EBBA1_prep$species))
 
 # EBBA 1, only selected species:
-EBBA1 <- read_sf(file.path(data_dir, "EBBA1_change.shp")) %>% # output of 1_EBBA_prep_data.R
+EBBA1 <- read_sf(file.path(data_dir, "EBBA1_change.shp")) %>% # output of 1_EBBA_prep_data.R; if EBBA change dataset is not available use EBBA1 data (EBBA1_prelim_comparable_harmonized.shp)
   filter(species %in% sel_species)
 
 # EBBA 2, only selected species:
-EBBA2 <- read_sf(file.path(data_dir, "EBBA2_change.shp")) %>% # output of 1_EBBA_prep_data.R
+EBBA2 <- read_sf(file.path(data_dir, "EBBA2_change.shp")) %>% # output of 1_EBBA_prep_data.R; if EBBA change dataset is not available use EBBA1 data (EBBA2_prelim_comparable_harmonized.shp)
   filter(species %in% sel_species)
 
 

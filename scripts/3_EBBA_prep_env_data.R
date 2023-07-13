@@ -32,7 +32,7 @@ getDoParWorkers() # check registered number of cores
 # ----------------------------------------- #
 
 # Lambert azimuthal equal-area projection (ETRS89-extended / LAEA Europe, EPSG:3035)
-# historic (1981-1990) and recent time period (2009-2018)
+# historic (1984-1988) and recent time period (2012-2017)
 
 chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE, 
                           pattern = paste0("(", paste(c(1984:1988, 2012:2017), collapse = "|"), ")_V.2.1.tif")) # 960
@@ -87,7 +87,7 @@ foreach(s = 1:length(chelsa_tifs),
 #   Calculate bioclimatic variables:     ####
 # ----------------------------------------- #
 
-# once for historic period (1981-1990), once for recent period (2009-2018)
+# once for historic period (1984-1988), once for recent period (2012-2017)
 
 vars <- c("pr", "tas", "tasmin", "tasmax")
 months <- str_pad(1:12, width = 2, pad = "0")

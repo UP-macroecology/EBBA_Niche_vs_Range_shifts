@@ -38,11 +38,8 @@ getDoParWorkers() # check registered number of cores
 
 # historic and recent time periods:
 
-# chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE,
-#                           pattern = paste0("(", paste(c(1980:1983, 1988:1990, 2015:2018), collapse = "|"), ")_V.2.1.tif"))
-
 chelsa_tifs <- list.files(datashare_Chelsa, full.names = FALSE,
-                          pattern = paste0("(", paste(c(1987:1990), collapse = "|"), ")_V.2.1.tif"))
+                          pattern = paste0("(", paste(c(1980:1983, 1987:1990, 2015:2018), collapse = "|"), ")_V.2.1.tif"))
 
 # names for reprojected Chelsa files:
 names <- paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "\\.tif")})), "_Albers_1km.tif")

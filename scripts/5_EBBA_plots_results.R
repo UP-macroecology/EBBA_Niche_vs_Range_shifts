@@ -49,8 +49,8 @@ EBBA_change_grid <- read_sf(file.path("data", "ebba2_grid50x50_change_v1", "ebba
 # results of niche and range shift analyses:
 
 # load analyses results (output of 4_EBBA_niche_shift_analysis.R and 4_EBBA_range_shift_analysis.R)
-niche_results <- read.csv(file.path(data_dir, paste0("EBBA_niche_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"), "_070723.csv")))
-range_results <- read.csv(file.path(data_dir, paste0("EBBA_range_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"), "_070723.csv")))
+niche_results <- read.csv(file.path(data_dir, paste0("EBBA_niche_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"), ".csv")))
+range_results <- read.csv(file.path(data_dir, paste0("EBBA_range_shift_results_bg_", ifelse(bg_spec, "spec", "EBBA"), ".csv")))
 
 # -------------------------------- #
 #     Plots and explorations:   ####
@@ -92,15 +92,7 @@ EBBA2_climate_data <- EBBA_cells %>% # same as EBBA2 cells
 pca.env <- dudi.pca(rbind(EBBA1_climate_data, EBBA2_climate_data)[, paste0("bio", 1:19)],
                     scannf = FALSE, nf = 2) # number of axes
 
-#ecospat::ecospat.plot.contrib(contrib=pca.env$co, eigen=pca.env$eig)
-
 # biplot:
-
-# p_biplot1 <- factoextra::fviz_pca_var(pca.env,
-#                                       gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-#                                       repel = TRUE,
-#                                       title = "EBBA PCA Biplot") # avoid text overlapping
-
 p_biplot2 <- factoextra::fviz_pca_biplot(pca.env, repel = TRUE,
                                          col.var = "black", # variables color
                                          col.ind = c(rep("historic", nrow(EBBA1_climate_data)),
@@ -130,10 +122,6 @@ map_sf <- EBBA_change_grid %>%
   left_join(map_df, by = c("cell50x50" = "cell50x50"))
 
 # plots:
-plot(map_sf["diff_PC1"])
-plot(map_sf["diff_PC2"])
-plot(map_sf["diff_PC1"], axes = TRUE, graticule = TRUE)
-
 world <- rnaturalearth::ne_coastline(returnclass = "sf") %>% 
   st_transform("EPSG:3035")
 
@@ -195,24 +183,8 @@ EBBA_richness_grid <- EBBA_change_grid %>% # EBBA change grid
 
 # plots:
 
-# world <- rnaturalearth::ne_countries(returnclass = "sf") %>% 
-#   st_transform("EPSG:3035")
 world <- rnaturalearth::ne_coastline(returnclass = "sf") %>% 
   st_transform("EPSG:3035")
-
-# EBBA 1 richness:
-ggplot() +
-  geom_sf(data = EBBA_richness_grid, aes(fill = EBBA1_richness), colour = NA) +
-  scale_fill_viridis_c("richness EBBA 1", na.value = NA) +
-  geom_sf(data = world, colour = "gray20", fill = NA) +
-  lims(x = c(1100000, 6500000), y = c(1500000, 6400000))
-
-# EBBA 2 richness:
-ggplot() +
-  geom_sf(data = EBBA_richness_grid, aes(fill = EBBA2_richness), colour = NA) +
-  scale_fill_viridis_c("richness EBBA 2", na.value = NA) +
-  geom_sf(data = world, colour = "gray20", fill = NA) +
-  lims(x = c(1100000, 6500000), y = c(1500000, 6400000))
 
 # center colour scale at zero:
 limit <- max(abs(EBBA_richness_grid$diff), na.rm = TRUE) * c(-1, 1)
@@ -267,7 +239,7 @@ dev.off()
 
 ## niche:
 niche_test_sign <- niche_results %>% 
-  select(c(species, matches("_p_"))) %>%
+  dplyr::select(c(species, matches("_p_"))) %>%
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
@@ -275,7 +247,7 @@ niche_test_sign <- niche_results %>%
 
 ## range:
 range_test_sign <- range_results %>% 
-  select(c(species, matches("_p_"))) %>% 
+  dplyr::select(c(species, matches("_p_"))) %>% 
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
@@ -354,7 +326,7 @@ dev.off()
 # merge niche and range shift results:
 metrics_df <- range_results %>% 
   left_join(niche_results, by = c("species" = "species")) %>% 
-  select(range_stability_std, range_unfilling_std, range_expansion_std,
+  dplyr::select(range_stability_std, range_unfilling_std, range_expansion_std,
          niche_stability_std, niche_unfilling_std, niche_expansion_std)
 
 cor1 <- with(metrics_df,cor.test(range_expansion_std, niche_unfilling_std))
@@ -422,7 +394,6 @@ p9 <- ggplot(data = metrics_df, aes(y = range_unfilling_std, x = niche_expansion
   geom_point() + geom_smooth(method = "lm") +
   theme_bw() + xlab("niche E") + ylab("range U") +
   geom_text(x=xrange[2]-(diff(xrange)*0.05), y = yrange[2]-(diff(yrange)*0.05), label = paste0("r=",round(cor9$estimate,2),ifelse(cor9$p.value<0.05,"*","")), vjust=1, hjust=1, color="black")
-
 
 
 pdf(file = file.path(plots_dir, "dynamics_correlations", paste0("EBBA_correlation_dynamics_bg_", 
@@ -506,28 +477,6 @@ p_climate_change
 dev.off()
 
 
-## for which species are results significant: ----
-
-spec_range_sign_stab <- range_results %>% 
-  dplyr::select(c(species, matches("_p_"))) %>% 
-  filter(cons_p_S_NA <= 0.05)  %>% # higher than by chance
-  pull(species)
-
-spec_range_sign_stab <- range_results %>% 
-  dplyr::select(c(species, matches("_p_"))) %>% 
-  filter(cons_p_S_A <= 0.05)  %>% # higher than by chance
-  pull(species)
-
-spec_niche_sign_stab <- niche_results %>% 
-  dplyr::select(c(species, matches("_p_"))) %>% 
-  filter(cons_p_S_NA <= 0.05)  %>% # higher than by chance
-  pull(species)
-
-spec_niche_sign_low_unf <- niche_results %>% 
-  dplyr::select(c(species, matches("_p_"))) %>% 
-  filter(cons_p_U_NA <= 0.05)  %>% # higher than by chance
-  pull(species)
-
 ## differences in bioclim variable values between historic and recent time period: ----
 
 bioclim1_hist <- rast(file.path(data_dir, "Bioclim_1984_1988", "CHELSA_bio1_1984_1988_50km.tif"))
@@ -580,138 +529,3 @@ for(s in 1:2){#length(sel_species)){
   
   readline(prompt = "Press [enter] to continue") # to go to next species; press [esc] to stop the loop
 }
-
-
-## misc. range / niche analysis explorations: ----------------------------------
-
-res_df <- range_results
-#res_df <- niche_results
-
-# for range analysis:
-summary(res_df$Eucl_dist)
-summary(res_df$NS_shift)
-summary(res_df$EW_shift)
-
-# species for which similarity test with regard to niche / range shifting yields significant results:
-
-# Schoener's D:
-# non-analogue conditions:
-res_df %>% 
-  filter(shift_p_D_NA < 0.05) %>% 
-  pull(species)
-# analogue conditions:
-res_df %>% 
-  filter(shift_p_D_A < 0.05) %>% 
-  pull(species)
-# -> none
-
-# expansion:
-# non-analogue conditions:
-res_df %>% 
-  filter(shift_p_E_NA < 0.05) %>% 
-  pull(species)
-# analogue conditions:
-res_df %>% 
-  filter(shift_p_E_A < 0.05) %>% 
-  pull(species)
-# -> none
-
-# stability:
-res_df %>% 
-  filter(shift_p_S_NA < 0.05) %>% 
-  pull(species)
-# analogue conditions:
-res_df %>% 
-  filter(shift_p_S_A < 0.05) %>% 
-  pull(species)
-# -> none
-
-# unfilling:
-res_df %>% 
-  filter(shift_p_U_NA < 0.05) %>% 
-  pull(species)
-# analogue conditions:
-res_df %>% 
-  filter(shift_p_U_A < 0.05) %>% 
-  pull(species)
-# -> none
-
-# species for which similarity test with regard to niche / range conservatism yields significant results:
-
-# Schoener's D:
-# non-analogue conditions:
-D_NA_cons_sign <- res_df %>% 
-  filter(cons_p_D_NA < 0.05) %>% 
-  pull(species)
-# analogue conditions:
-D_A_cons_sign <- res_df %>% 
-  filter(cons_p_D_A < 0.05) %>% 
-  pull(species)
-identical(D_NA_cons_sign, D_A_cons_sign) # TRUE
-length(D_NA_cons_sign)
-# ->except for:
-res_df %>% 
-  filter(cons_p_D_A >= 0.05) %>% 
-  pull(species)
-
-# expansion:
-# non-analogue conditions:
-exp_NA_cons_sign <- res_df %>% 
-  filter(cons_p_E_NA < 0.05) %>% 
-  pull(species)
-# analogue conditions:
-exp_A_cons_sign <- res_df %>% 
-  filter(cons_p_E_A < 0.05) %>% 
-  pull(species)
-identical(exp_NA_cons_sign, exp_A_cons_sign)
-exp_A_cons_sign[which(!exp_A_cons_sign %in% exp_NA_cons_sign)]
-exp_NA_cons_sign[which(!exp_NA_cons_sign %in% exp_A_cons_sign)]
-
-# stability:
-# non-analogue conditions:
-st_NA_cons_sign <- res_df %>% 
-  filter(cons_p_S_NA < 0.05) %>% 
-  pull(species)
-# analogue conditions:
-st_A_cons_sign <- res_df %>% 
-  filter(cons_p_S_A < 0.05) %>% 
-  pull(species)
-identical(st_NA_cons_sign, st_A_cons_sign)
-st_A_cons_sign[which(!st_A_cons_sign %in% st_NA_cons_sign)]
-st_NA_cons_sign[which(!st_NA_cons_sign %in% st_A_cons_sign)]
-identical(exp_NA_cons_sign, st_NA_cons_sign)
-identical(exp_A_cons_sign, st_A_cons_sign)
-# for which not:
-res_df %>% 
-  filter(cons_p_S_NA >= 0.05) %>% 
-  pull(species) 
-res_df %>% 
-  filter(cons_p_S_A >= 0.05) %>% 
-  pull(species) 
-
-# unfilling:
-# non-analogue conditions:
-unf_NA_cons_sign <- res_df %>% 
-  filter(cons_p_U_NA < 0.05) %>% 
-  pull(species)
-# analogue conditions:
-unf_A_cons_sign <- res_df %>% 
-  filter(cons_p_U_A < 0.05) %>% 
-  pull(species)
-identical(unf_NA_cons_sign, unf_A_cons_sign) # TRUE
-unf_NA_cons_sign[which(!unf_NA_cons_sign %in% unf_A_cons_sign)]
-unf_A_cons_sign[which(!unf_A_cons_sign %in% unf_NA_cons_sign)]
-# except for:
-res_df %>% 
-  filter(cons_p_U_NA >= 0.05) %>% 
-  pull(species)
-
-sel_species[which(sel_species %in% c(D_NA_cons_sign) &
-                    sel_species %in% c(D_A_cons_sign) &
-                    sel_species %in% c(exp_NA_cons_sign) &
-                    sel_species %in% c(exp_A_cons_sign) &
-                    sel_species %in% c(st_NA_cons_sign) &
-                    sel_species %in% c(st_A_cons_sign) &
-                    sel_species %in% c(unf_NA_cons_sign) &
-                    sel_species %in% c(unf_A_cons_sign)
-                    )]

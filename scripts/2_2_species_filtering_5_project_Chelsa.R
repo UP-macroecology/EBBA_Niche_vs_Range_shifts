@@ -1,7 +1,7 @@
-# Chelsa data of EBBA2 period (2009-2018) are projected to a global equal area projection (Interrupted Goode Homolosine)
-# EBBA2 period used to match current Birdlife range data (released 2022)
+# Chelsa data for recent period (EBBA2: 2012-2017, BBS: 2015-2018) are projected to a global equal area projection (Interrupted Goode Homolosine)
+# recent period used to match current Birdlife range data (released 2022)
 
-# (preparation for filtering step 5: Exclude species whose climatic niche is not well covered in Europe.
+# (preparation for filtering step 5: Exclude species whose climatic niche is not well covered.
 # To assess the climatic niche a species uses throughout its range we use Chelsa data.)
 
 # notes:
@@ -10,7 +10,7 @@
 # 1) cluster "default": R version 4.0.4 (2021-02-15) - GEOS 3.9.0, GDAL 3.2.2, PROJ 7.2.1: "GDAL Error 1: Too many points failed to transform, unable to compute output bounds."
 # 2) cluster R version 4.1.0 (access on ecoc9 by running "module load R/4.1.0-foss-2021a" and install all necessary packages) - GEOS 3.9.1, GDAL 3.3.0, PROJ 8.0.1: "GDAL Error 1: PROJ: igh: Invalid latitude" (may be due to PROJ version)
 # 3) R version 4.1.2 on my laptop and GEOS 3.10.2, GDAL 3.4.1, PROJ 7.2.1: neither warnings nor errors
-# -> I used option 2) since 2) and 3) yield same results, I did not get any messages for 3) and 1) duplicates Iceland and parts of Greenland
+# -> I used option 2) since 2) and 3) yield same results, I did not get any messages for 3) and 1) seems to duplicate Iceland and parts of Greenland
 
 library(gdalUtilities)
 library(doParallel)
@@ -53,12 +53,12 @@ homolosine <- 'PROJCS["Homolosine",
                      UNIT["Meter",1]]'
 
 
-# ------------------------------------------- #
-#            Project Chelsa for EBBA:      ####
-# ------------------------------------------- #
+# ---------------------------------- #
+#            Project Chelsa:      ####
+# ---------------------------------- #
 
 chelsa_tifs <- list.files(datashare, full.names = FALSE, 
-                           pattern = paste0("(", paste(2009:2018, collapse = "|"), ")_V.2.1.tif"))
+                           pattern = paste0("(", paste(2012:2018, collapse = "|"), ")_V.2.1.tif"))
  
 # create file paths for the reprojected data:
 names <- paste0(unlist(lapply(chelsa_tifs, FUN = function(x) {strsplit(x, "\\.tif")})), "_50km.tif")

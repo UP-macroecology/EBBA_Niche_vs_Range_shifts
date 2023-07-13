@@ -28,20 +28,20 @@ hist_years <- 1980:1983 # maximum gap between historic and recent time period
 # environmental background: presences and absences within 500 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
 bg_spec <- TRUE
 
-niche_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_niche_shift_results_bg_spec_hist81-83_070723.csv"))
-range_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_range_shift_results_bg_spec_hist81-83_070723.csv"))
+niche_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_niche_shift_results_bg_spec_hist81-83.csv"))
+range_results_BBS <- read.csv(file.path(data_dir_BBS, "BBS_range_shift_results_bg_spec_hist81-83.csv"))
 sel_species_BBS <- niche_results_BBS$species
 
-niche_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_niche_shift_results_bg_spec_070723.csv"))
-range_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_range_shift_results_bg_spec_070723.csv"))
+niche_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_niche_shift_results_bg_spec.csv"))
+range_results_EBBA <- read.csv(file.path(data_dir_EBBA, "EBBA_range_shift_results_bg_spec.csv"))
 sel_species_EBBA <- niche_results_EBBA$species
 
 
 #################################
 # Climatic niche coverage
 
-stability_BBS <- read.csv(file.path(data_dir_BBS,"BBS_stability_PCA_contUS_BL22_060723.csv"))
-stability_EBBA <- read.csv(file.path(data_dir_EBBA,"species_stability_EBBA2_BL22_060723.csv"))
+stability_BBS <- read.csv(file.path(data_dir_BBS,"BBS_stability_PCA_contUS_BL22.csv"))
+stability_EBBA <- read.csv(file.path(data_dir_EBBA,"species_stability_PCA_EBBA2_BL22.csv"))
 
 stab_df <- data.frame(stability=c(stability_EBBA$stability, stability_BBS$stability),
                       Region=c(rep("Europe",nrow(stability_EBBA)),rep("US",nrow(stability_BBS))))
@@ -70,7 +70,7 @@ dev.off()
 
 ## niche BBS:
 niche_test_sign_BBS <- niche_results_BBS %>% 
-  select(c(species, matches("_p_D_"))) %>%
+  dplyr::select(c(species, matches("_p_D_"))) %>%
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
@@ -78,7 +78,7 @@ niche_test_sign_BBS <- niche_results_BBS %>%
 
 ## range BBS:
 range_test_sign_BBS <- range_results_BBS %>% 
-  select(c(species, matches("_p_D_"))) %>% 
+  dplyr::select(c(species, matches("_p_D_"))) %>% 
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
@@ -86,7 +86,7 @@ range_test_sign_BBS <- range_results_BBS %>%
 
 ## Niche EBBA:
 niche_test_sign_EBBA <- niche_results_EBBA %>% 
-  select(c(species, matches("_p_D_"))) %>%
+  dplyr::select(c(species, matches("_p_D_"))) %>%
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
@@ -94,7 +94,7 @@ niche_test_sign_EBBA <- niche_results_EBBA %>%
 
 ## range EBBA:
 range_test_sign_EBBA <- range_results_EBBA %>% 
-  select(c(species, matches("_p_D_"))) %>% 
+  dplyr::select(c(species, matches("_p_D_"))) %>% 
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
@@ -173,7 +173,7 @@ dev.off()
 
 ## niche BBS:
 niche_test_sign_BBS <- niche_results_BBS %>% 
-  select(c(species, matches("cons_p_"))) %>%
+  dplyr::select(c(species, matches("cons_p_"))) %>%
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
@@ -181,7 +181,7 @@ niche_test_sign_BBS <- niche_results_BBS %>%
 
 ## range BBS:
 range_test_sign_BBS <- range_results_BBS %>% 
-  select(c(species, matches("cons_p_"))) %>% 
+  dplyr::select(c(species, matches("cons_p_"))) %>% 
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
@@ -189,7 +189,7 @@ range_test_sign_BBS <- range_results_BBS %>%
 
 ## Niche EBBA:
 niche_test_sign_EBBA <- niche_results_EBBA %>% 
-  select(c(species, matches("cons_p_"))) %>%
+  dplyr::select(c(species, matches("cons_p_"))) %>%
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
@@ -197,7 +197,7 @@ niche_test_sign_EBBA <- niche_results_EBBA %>%
 
 ## range EBBA:
 range_test_sign_EBBA <- range_results_EBBA %>% 
-  select(c(species, matches("cons_p_"))) %>% 
+  dplyr::select(c(species, matches("cons_p_"))) %>% 
   summarise(across(.cols = where(is.numeric), 
                    .fns = ~length(which(.x <= 0.05)), 
                    .names = "{.col}_n_sig")) %>% 
@@ -311,14 +311,14 @@ metrics_BBS_df <- range_results_BBS %>%
   rename(r_D=D) %>%
   left_join(niche_results_BBS, by = c("species" = "species")) %>% 
   rename(n_D=D) %>%
-  select(r_D, n_D, range_stability_std, range_unfilling_std, range_expansion_std,
+  dplyr::select(r_D, n_D, range_stability_std, range_unfilling_std, range_expansion_std,
          niche_stability_std, niche_unfilling_std, niche_expansion_std)
 
 metrics_EBBA_df <- range_results_EBBA %>% 
   rename(r_D=D) %>%
   left_join(niche_results_EBBA, by = c("species" = "species")) %>% 
   rename(n_D=D) %>%
-  select(r_D, n_D, range_stability_std, range_unfilling_std, range_expansion_std,
+  dplyr::select(r_D, n_D, range_stability_std, range_unfilling_std, range_expansion_std,
          niche_stability_std, niche_unfilling_std, niche_expansion_std)
 
 cor1 <- with(metrics_BBS_df,cor.test(r_D, n_D))

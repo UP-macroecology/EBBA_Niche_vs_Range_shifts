@@ -49,7 +49,7 @@ load(file = file.path(data_dir, "BBS_prep_steps1-4_hist81-83.RData")) # output o
 species_filtered_V1 <- sort(sub(" ", "_", hist_prep_df$species)) # 212
 load(file = file.path(data_dir, "BBS_prep_steps1-4_hist88-90.RData")) # output of 2_1_BBS_species_filtering_1-4.R
 species_filtered_V2 <- sort(sub(" ", "_", hist_prep_df$species)) # 264
-species_filtered <- sort(unique(c(species_filtered_V1, species_filtered_V2))) # 264
+species_filtered <- sort(unique(c(species_filtered_V1, species_filtered_V2))) # 265
 
 # register cores for parallel computation:
 registerDoParallel(cores = 2)
@@ -127,8 +127,6 @@ foreach(s = 1:length(species_filtered),
 # project raster and change resolution to 50 km (same as EBBA)
 
 # global equal area projection (Interrupted Goode Homolosine)
-# used by SoilGrids (Homolosine projection applied to the WGS84 datum)
-# from: https://www.isric.org/explore/soilgrids/faq-soilgrids#How_can_I_use_the_Homolosine_projection
 homolosine <- 'PROJCS["Homolosine",
                      GEOGCS["WGS 84",
                             DATUM["WGS_1984",
@@ -355,8 +353,64 @@ contUS_rast_poly <- rast(file.path(data_dir, "contUS_50km.tif")) %>%
 # files of rasterized and projected Birdlife ranges:
 BL_range_tifs
 
-# data frame for PCA eigenvalues
-BBS_global_niche_PCA <- data.frame(species=species_filtered, PCA_percent=NA)
+# pre-step: exclude species considered non-native throughout the conterminous US:
+
+## check whether any of the occurrences are in the part of Birdlife range where species is non-native (origin != 1)
+
+## data frame to store results:
+native_spec_df <- data.frame("species" = species_filtered,
+                             "native" = NA)
+
+for(i in 1:length(species_filtered)){
+  
+  print(i)
+  
+  # read Birdlife range:
+  BL_range_shps <- list.files(file.path(data_dir, "Birdlife_ranges_BBS", "Shapefiles_2022"), full.names = TRUE, pattern = ".shp$")
+  BL_range_sf <- read_sf(grep(BL_range_shps, pattern = species_filtered[i], value = TRUE))
+  
+  # are there parts of range where species is non-native?:
+  anynonnative <- BL_range_sf %>% 
+    filter(origin != 1) %>% 
+    nrow
+  
+  if(anynonnative == 0){
+    native_spec_df$native[i] <- 1
+    next
+  }
+  
+  # read BBS occurrences:
+  BBS_spec_occ <- st_read(file.path(data_dir, "BBS_recent_centr_proj_hist81-83.shp")) %>%  # output of 1_BBS_prep_data.R; same results for historic
+    filter(species == sub("_", " ", species_filtered[i]) & pres == 1) %>% 
+    st_transform(crs = crs(BL_range_sf))
+  
+  # part of Birdlife range where species is non-native:
+  BL_range_sf_nonnative <- BL_range_sf %>% 
+    filter(origin != 1)
+  #plot(st_geometry(BL_range_sf_nonnative))
+  #points(BBS_spec_occ, col = "red")
+  
+  # are there occurrences in non-native part of the range?:
+  anynonnative <- st_intersection(BBS_spec_occ, st_make_valid(BL_range_sf_nonnative)) %>% 
+    nrow
+  
+  if(anynonnative != 0){
+    native_spec_df$native[i] <- 0
+  } else {
+    native_spec_df$native[i] <- 1
+  }
+}
+
+nonnatives <- native_spec_df %>% 
+  filter(native != 1) %>%  
+  pull(species)
+
+## visually checked BirdLife maps for whether species is considered non-native throughout the conterminous US (excluded) or only in small parts (included in further analyses)
+
+## the following species are excluded:
+species_filtered <- species_filtered[which(!species_filtered %in% c("Phasianus_colchicus",
+                                                                    "Perdix_perdix",
+                                                                    "Passer_domesticus"))]
 
 # loop over species:
 stability_df <- foreach(i = 1:length(species_filtered),
@@ -456,7 +510,7 @@ stability_df <- foreach(i = 1:length(species_filtered),
                         }
 
 stability_df %>% 
-  arrange(-stability) # 262 species
+  arrange(-stability) # 259 species
 # 3 missing species:
 # Anas_crecca: BL range does not cover conterminous US 
 # Cistothorus_platensis: BL range does not cover conterminous US
@@ -465,16 +519,11 @@ stability_df %>%
 
 # save species stability values :
 write.csv(stability_df, 
-          file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22_060723.csv"),
+          file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22.csv"),
           row.names = FALSE)
-
-# write.csv(BBS_global_niche_PCA, 
-#           file = file = file.path(data_dir, "BBS_global_niche_PCA.csv"), 
-#           row.names=F)
 
 # plots regarding stability:
 plot(sort(stability_df$stability, decreasing = TRUE),
      ylab = "stability", xlab = "number of species", las = 1)
 abline(h = 0.7, col = "red")
 abline(h = 0.5, col = "blue")
-

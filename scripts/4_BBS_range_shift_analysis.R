@@ -32,7 +32,7 @@ library(ade4)
 #            Set-up:          ####
 # ------------------------------ #
 
-# environmental background: presences and absences within 600 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
+# environmental background: presences and absences within 500 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
 bg_spec <- TRUE
 
 # which historic time period should be used:
@@ -70,7 +70,7 @@ sel_species <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL2
 # BBS data, only selected species:
 load(file = file.path(data_dir, paste0("BBS_prep_steps1-4_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".RData"))) # output of 2_1_BBS_species_filtering_1-4.R
 species_filtered <- sort(hist_prep_df$species)
-sel_species_final <- species_filtered[which(species_filtered %in% sel_species)] # 196 (hist. 88-90: 236)
+sel_species_final <- species_filtered[which(species_filtered %in% sel_species)] # 195 (hist. 88-90: 233)
 
 BBS_hist <- read_sf(file.path(data_dir, paste0("BBS_historic_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".shp"))) %>% # output of 1_BBS_prep_data.R
   filter(species %in% sel_species_final)
@@ -272,7 +272,7 @@ range_ecospat_df <- foreach(s = 1:length(sel_species_final),
                                 
                                 # environmental background = all presences and true absences within 500 km of presences
                                 
-                                ## 600 km buffer around presences:
+                                ## 500 km buffer around presences:
                                 background_bf <- BBS_rec %>%
                                   filter(species == spec & pres == 1) %>% 
                                   st_buffer(dist = 500000) %>% 

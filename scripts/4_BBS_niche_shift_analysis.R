@@ -26,12 +26,12 @@ library(ade4)
 #            Set-up:          ####
 # ------------------------------ #
 
-# environmental background: presences and absences within 600 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
+# environmental background: presences and absences within 500 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
 bg_spec <- TRUE
 
 # which historic time period should be used:
-hist_years <- 1980:1983 # maximum gap between historic and recent time period
-#hist_years <- 1987:1990 # similar gap between historic and recent time period as in EBBA analysis
+#hist_years <- 1980:1983 # maximum gap between historic and recent time period
+hist_years <- 1987:1990 # similar gap between historic and recent time period as in EBBA analysis
 
 # paths to data:
 
@@ -53,7 +53,7 @@ if(!dir.exists(plots_dir)){dir.create(plots_dir, recursive = TRUE)}
 
 # results table:
 results_file <- file.path(data_dir, paste0("BBS_niche_shift_results_bg_", ifelse(bg_spec, "spec", "US"),  "_hist",
-                                           ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), "_070723.csv"))
+                                           ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".csv"))
 
 
 # ---------------------------- #
@@ -61,15 +61,15 @@ results_file <- file.path(data_dir, paste0("BBS_niche_shift_results_bg_", ifelse
 # ---------------------------- #
 
 # species selection: 
-sel_species <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22_060723.csv")) %>%
+sel_species <- read.csv(file = file.path(data_dir, "BBS_stability_PCA_contUS_BL22.csv")) %>%
   filter(stability >= 0.5) %>% 
   pull(species) %>% 
-  sort # 237
+  sort # 234
 
 # BBS data, only selected species:
 load(file = file.path(data_dir, paste0("BBS_prep_steps1-4_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".RData"))) # output of 2_1_BBS_species_filtering_1-4.R
 species_filtered <- sort(unique(hist_prep_df$species))
-sel_species_final <- species_filtered[which(species_filtered %in% sel_species)] # 196 (hist81-83) / 236 (hist96-98)
+sel_species_final <- species_filtered[which(species_filtered %in% sel_species)] # 195 (hist81-83) / 233 (hist96-98)
 
 BBS_hist <- read_sf(file.path(data_dir, paste0("BBS_historic_centr_proj_hist", ifelse(all(hist_years == 1980:1983), "81-83", "88-90"), ".shp"))) %>% # output of 1_BBS_prep_data.R
   filter(species %in% sel_species_final)
@@ -139,11 +139,11 @@ niche_shift_df <- foreach(s = 1:length(sel_species_final),
                                                               "nE_A" = NA,
                                                               "nU_A" = NA,
                                                               # niche characteristics:
-                                                              "n_centroid_hist_X" = NA, # useful?
-                                                              "n_centroid_hist_Y" = NA, # useful?
-                                                              "n_centroid_rec_X" = NA, # useful?
-                                                              "n_centroid_rec_Y" = NA, # useful?
-                                                              "n_centroids_dist" = NA) # useful?
+                                                              "n_centroid_hist_X" = NA, 
+                                                              "n_centroid_hist_Y" = NA, 
+                                                              "n_centroid_rec_X" = NA, 
+                                                              "n_centroid_rec_Y" = NA, 
+                                                              "n_centroids_dist" = NA) 
                             
                             
                             ## PCA scores: ---------------------------------------------
@@ -156,7 +156,7 @@ niche_shift_df <- foreach(s = 1:length(sel_species_final),
 
                             if(bg_spec){
                               
-                              # environmental background = all presences and true absences within 500 km of presences (Sofaer et al. 2018)
+                              # environmental background = all presences and true absences within 500 km of presences
                               # -> PCA scores for species presence and absence points
                               
                               # 500 km buffer around presences:
