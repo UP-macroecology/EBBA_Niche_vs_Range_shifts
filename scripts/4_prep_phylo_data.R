@@ -58,9 +58,10 @@ traits_all$phylo_species[traits_all$phylo_species=="Setophaga americana"] <- "Pa
 traits_all$phylo_species[traits_all$phylo_species=="Setophaga caerulescens"] <- "Dendroica caerulescens"
 traits_all$phylo_species[traits_all$phylo_species=="Setophaga cerulea"] <- "Dendroica cerulea"
 traits_all$phylo_species[traits_all$phylo_species=="Setophaga citrina"] <- "Wilsonia citrina"
-# Careful: subspecies
+# Careful: subspecies!
 traits_all$phylo_species[traits_all$phylo_species=="Setophaga coronata audoboni"] <- "Dendroica coronata"
 traits_all$phylo_species[traits_all$phylo_species=="Setophaga coronata coronata"] <- "Dendroica coronata"
+# Careful: subspecies!
 traits_all$phylo_species[traits_all$phylo_species=="Setophaga discolor"] <- "Dendroica discolor"
 traits_all$phylo_species[traits_all$phylo_species=="Setophaga dominica"] <- "Dendroica dominica"
 traits_all$phylo_species[traits_all$phylo_species=="Setophaga fusca"] <- "Dendroica fusca"

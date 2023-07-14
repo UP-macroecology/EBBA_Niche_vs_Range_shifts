@@ -425,10 +425,10 @@ traits_res_tb <- traits_res %>%
   # mutate(term=Trait, estimate=range_stab_coef, std.error=range_stab_stderr, statistic=range_stab_coef/range_stab_stderr, p.value=range_stab_p, model=region, varimp=range_stab_varimp) %>%
   # mutate(term=Trait, estimate=range_unf_coef, std.error=range_unf_stderr, statistic=range_unf_coef/range_unf_stderr, p.value=range_unf_p, model=region, varimp=range_unf_varimp) %>%
   # mutate(term=Trait, estimate=range_exp_coef, std.error=range_exp_stderr, statistic=range_exp_coef/range_exp_stderr, p.value=range_exp_p, model=region, varimp=range_exp_varimp) %>%
-  # mutate(term=Trait, estimate=nicheD_coef, std.error=nicheD_stderr, statistic=nicheD_coef/nicheD_stderr, p.value=nicheD_p, model=region, varimp=nicheD_varimp) %>%
+  mutate(term=Trait, estimate=nicheD_coef, std.error=nicheD_stderr, statistic=nicheD_coef/nicheD_stderr, p.value=nicheD_p, model=region, varimp=nicheD_varimp) %>%
   # mutate(term=Trait, estimate=niche_stab_coef, std.error=niche_stab_stderr, statistic=niche_stab_coef/niche_stab_stderr, p.value=niche_stab_p, model=region, varimp=niche_stab_varimp) %>%
   # mutate(term=Trait, estimate=niche_unf_coef, std.error=niche_unf_stderr, statistic=niche_unf_coef/niche_unf_stderr, p.value=niche_unf_p, model=region, varimp=niche_unf_varimp) %>%
-  mutate(term=Trait, estimate=niche_exp_coef, std.error=niche_exp_stderr, statistic=niche_exp_coef/niche_exp_stderr, p.value=niche_exp_p, model=region, varimp=niche_exp_varimp) %>%
+  # mutate(term=Trait, estimate=niche_exp_coef, std.error=niche_exp_stderr, statistic=niche_exp_coef/niche_exp_stderr, p.value=niche_exp_p, model=region, varimp=niche_exp_varimp) %>%
   select(term, estimate, std.error, statistic, p.value, model, varimp) %>% 
   filter(term %in% covariates)
 varimp_US <- traits_res_tb %>% filter(model=="US") %>% select(varimp)
@@ -453,10 +453,10 @@ dwplot(traits_res_tb,
   # ggtitle("Range stability") +
   # ggtitle("Range unfilling") +
   # ggtitle("Range expansion") +
-  # ggtitle("Niche overlap - Schoener's D") +
+  ggtitle("Niche overlap - Schoener's D") +
   # ggtitle("Niche stability") +
   # ggtitle("Niche unfilling") +
-  ggtitle("Niche expansion") +
+  # ggtitle("Niche expansion") +
   theme_bw(base_size = 12) + 
   xlab("Coefficient Estimate") + 
   ylab("") + 

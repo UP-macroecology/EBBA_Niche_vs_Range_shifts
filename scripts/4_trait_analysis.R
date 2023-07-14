@@ -344,8 +344,8 @@ for (i in 1:length(step.varImp.allmetrics))	{
   r2a <- tt[[1]][2] - tt$randR2adj
   # Rescale the values (?)
   if (ncol(r2)>1) {
-    r2 <- t(apply(r2, 1, function(x) {x=ifelse(x<0,0,x); x/sum(x)} ))
-    r2a <- t(apply(r2a, 1, function(x) {x=ifelse(x<0,0,x); x/sum(x)} ))
+    r2 <- t(apply(r2, 1, function(x) {x=ifelse(x<0,10^-20,x); x/sum(x)} ))
+    r2a <- t(apply(r2a, 1, function(x) {x=ifelse(x<0,10^-20,x); x/sum(x)} ))
     # Get the means and sd
     Mr2 <- apply(r2, 2, mean) ; Mr2a <- apply(r2a, 2, mean)
     Sr2 <- apply(r2, 2, sd) ; Sr2a <- apply(r2a, 2, sd) } else {
@@ -657,8 +657,8 @@ for (i in 1:length(step.varImp.allmetrics))	{
   r2a <- tt[[1]][2] - tt$randR2adj
   # Rescale the values (?)
   if (ncol(r2)>1) {
-    r2 <- t(apply(r2, 1, function(x) {x=ifelse(x<0,0,x); x/sum(x)} ))
-    r2a <- t(apply(r2a, 1, function(x) {x=ifelse(x<0,0,x); x/sum(x)} ))
+    r2 <- t(apply(r2, 1, function(x) {x=ifelse(x<0,10^-20,x); x/sum(x)} ))
+    r2a <- t(apply(r2a, 1, function(x) {x=ifelse(x<0,10^-20,x); x/sum(x)} ))
     # Get the means and sd
     Mr2 <- apply(r2, 2, mean) ; Mr2a <- apply(r2a, 2, mean)
     Sr2 <- apply(r2, 2, sd) ; Sr2a <- apply(r2a, 2, sd) } else {
