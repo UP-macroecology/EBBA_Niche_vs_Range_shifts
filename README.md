@@ -22,7 +22,7 @@ Then a subset of the species considered suitable for the analyses was extracted:
 ### bg_spec / bg_EBBA / bg_US:
 
 Niche and range shift analysis were run using two versions of environmental backgrounds, i.e. the total area that is assumed to be available to a species:
-- "bg_spec" = species-specific environmental background: for Europe we use the EBBA-change cells located within a 500 km buffer around the species presences, for the conterminous US we use the routes with presences and true absences of a species within a 600 km buffer around the presences (following Sofaer et al.)
+- "bg_spec" = species-specific environmental background: for Europe we use the EBBA-change cells located within a 500 km buffer around the species presences, for the conterminous US we use the routes with presences and true absences of a species within a 500 km buffer around the presences (following Sofaer et al.)
 - "bg_EBBA" / "bg_US" = same environmental background for all species: for Europe we use all EBBA-change cells, for the US we use all routes containing presences and true absences of a species across the conterminous US
 
 ### hist81-83 / hist96-98 (BBS only):
@@ -30,7 +30,7 @@ Niche and range shift analysis were run using two versions of environmental back
 The BBS analysis was run separately for two different historic time periods:
 
 - "hist81-83" = 1981 - 1983: earliest time span for which Chelsa data is available / maximum gap between historic and recent time period (Chelsa data available from 1980 onwards, we included the year preceding the considered time period in calculating the bioclimatic variables to account for lag effects following Sofaer et al.)
-- "hist96-98" = 1996 - 1998: yields a similar time gap between the historic and the recent time period as in the EBBA analysis
+- "hist88-90" = 1988 - 1990: yields a similar time gap between the historic and the recent time period as in the EBBA analysis
 
 
 ## Folder structure:
@@ -91,22 +91,22 @@ Subset the species to keep only those that are probably most suitable for the an
 - step 1: Exclude pelagic specialists (according to Wilman et al. 2014)
 - step 2: Exclude rare species with n<20 occurrences in any of the two atlas periods.
 - step 3: Exclude very common species with >90% prevalence in at least one of the two atlas periods.
-- step 4: Keep only those species that occur in both atlas periods.
+- step 4: Keep only those species that are native occur in both atlas periods.
 - outputs: EBBA1_EBBA2_prep_steps1-4_prelim.RData, EBBA1_EBBA2_prep_steps1-4_final.RData
 
 ##### BBS:
 Same as for EBBA, but also excluding records for which data were not available on the species level.
-- outputs: BBS_prep_steps1-4_hist81-83.RData, BBS_prep_steps1-4_hist96-98.RData
+- outputs: BBS_prep_steps1-4_hist81-83.RData, BBS_prep_steps1-4_hist88-90.RData
 
 #### 2_2_species_filtering_5_project_Chelsa.R:
 
-Preparation for step 5 to further subset the species: Chelsa data of 2009 - 2018 (including the time period covered by EBBA 2 and the recent period of the BBS analysis) are projected using the global equal area projection <em>Interrupted Goode Homolosine</em> and a resolution of 50 km, which matches the resolution of the EBBA.
+Preparation for step 5 to further subset the species: Chelsa data of 2012 - 2018 (including the time period covered by EBBA 2 and the recent period of the BBS analysis) are projected using the global equal area projection <em>Interrupted Goode Homolosine</em> and a resolution of 50 km, which matches the resolution of the EBBA.
 
 #### 2_3_(EBBA/BBS)_species_filtering_5_climatic_niche_analysis.R:
 
 ##### EBBA:
 
-To exclude species whose climatic niche is not well covered in Europe, we compared the climatic niche that a species uses throughout its global range with the climatic niche covered by the comparable EBBA area. To characterise the climatic niche we use 19 bioclimatic variables derived from Chelsa data of the years 2009 - 2018.
+To exclude species whose climatic niche is not well covered in Europe, we compared the climatic niche that a species uses throughout its global range with the climatic niche covered by the comparable EBBA area. To characterise the climatic niche we use 19 bioclimatic variables derived from Chelsa data of the years 2012 - 2017.
 - to describe the climatic niche, occurrence records are matched to the corresponding bioclimatic variables: with regard to the European distribution the EBBA 2 occurrence records are used, with regard to the global distributions the raster cell centroids of the Birdlife 2022 range that is either used throughout the year or during the breeding season are used as occurrence points
 - following the niche quantification and comparison workflow of the <em>ecospat</em> package, the climatic niche of each species is summarised using the first two axes of a PCA. Afterwards occurrence density grids are calculated in climatic niche space for both niches (global as z2 and EBBA-based as z1) and niche dynamics are quantified. The stability index is used to determine how much of the species' global climatic niche is covered in Europe. 
 - in the following analyses we used the EBBA1-EBBA2 change dataset for species with stability >= 50 % (previously, we used the 150 species with the largest stability values, thus requested in fact EBBA1-EBBA2 change data for some more species)
@@ -115,20 +115,20 @@ To exclude species whose climatic niche is not well covered in Europe, we compar
 ##### BBS:
 
 Similar as above, however, instead of comparing the BBS distribution of a species to its global distribution, we assessed how much of a species global climatic niche is contained in the conterminous US:
-- Chelsa data of the years 2016 - 2018 are used
+- Chelsa data of the years 2015 - 2018 are used
 - as occurrences records we used the raster cell centroids of the Birdlife 2022 range that is either used throughout the year or during the breeding season
 - niche quantification: global climatic niche as z2 and climatic niche contained in the conterminous US as z1
-- outputs: species_stability_contUS_BL22.csv, Bioclim_global_2016_2018, plots/coverage_climatic_niche/contUS_vs_BL_niche_dyn, conterminousUS.shp
+- outputs: species_stability_contUS_BL22.csv, Bioclim_global_2015_2018, plots/coverage_climatic_niche/contUS_vs_BL_niche_dyn, conterminousUS.shp
 
 #### 3_(EBBA/BBS)_prep_env_data.R:
 
 ##### EBBA:
-Chelsa climate data of the area covered by the EBBA 2 grid (mask: EBBA2_area.tif) of the historic (1981-1990) and recent (2009-2018) time period are projected using the Lambert azimuthal equal-area projection (ETRS89-extended / LAEA Europe, EPSG:3035) and a resolution of 50km. Subsequently, the values of the 19 bioclimatic variables are calculated based on the monthly mean values of precipitation, minimum, maximum and mean temperature, once for the historic and once for the recent time period.
-- outputs: Bioclim_1981_1990, Bioclim_2009_2018
+Chelsa climate data of the area covered by the EBBA 2 grid (mask: EBBA2_area.tif) of the historic (1984-1988) and recent (2012-2017) time period are projected using the Lambert azimuthal equal-area projection (ETRS89-extended / LAEA Europe, EPSG:3035) and a resolution of 50km. Subsequently, the values of the 19 bioclimatic variables are calculated based on the monthly mean values of precipitation, minimum, maximum and mean temperature, once for the historic and once for the recent time period.
+- outputs: Bioclim_1984_1988, Bioclim_2012_2017
 
 ##### BBS:
-Chelsa climate data of the conterminous US (mask: conterminousUS_1km.tif) of the historic and recent time periods including the preceding year to account for lag effect (see Sofaer et al.; 1980-1883 / 1995-1998) are projected using the Albers equal-area projection (ESRI:102003) and a resolution of 1 km. Subsequently, the values of the 19 bioclimatic variables are calculated as above.
-- outputs: Bioclim_1980_1983, Bioclim_1995_1998, Bioclim_2015_2018
+Chelsa climate data of the conterminous US (mask: conterminousUS_1km.tif) of the historic and recent time periods including the preceding year to account for lag effect (see Sofaer et al.; 1980-1883 / 1987-1990) are projected using the Albers equal-area projection (ESRI:102003) and a resolution of 1 km. Subsequently, the values of the 19 bioclimatic variables are calculated as above.
+- outputs: Bioclim_1980_1983, Bioclim_1987_1990, Bioclim_2015_2018
 
 
 #### 3_prep_trait_data.R:
@@ -140,7 +140,7 @@ Chelsa climate data of the conterminous US (mask: conterminousUS_1km.tif) of the
 
 Niche overlap analysis using the <em>ecospat</em> package. The niche is calculated as the density scores along the first two axes of a PCA that summarises the bioclimatic variables. 
 (For the EBBA analysis the values of the bioclimatic variables at the cell centroids are used. For the BBS analysis the climate data corresponding to a route centroid are determined by first buffering the routes' centroids with a 21 km buffer and then calculting a weighted mean of the values of the bioclimatic variables within the buffer, see Sofaer et al.). For each species Schoener's D, the results of niche similarity tests with regard to niche shifting (column names starting with "shift_p") and niche conservatism (column names starting with "cons_p") with regard to analogue (column name containing "A") and non-analogue (column name containing "NA") conditions, as well as standardized indices for niche dynamics (stability S, expansion E, unfilling U, abandonment A and pioneering P) are stored in a csv file.
-- outputs: EBBA_niche_shift_results_bg_EBBA.csv, EBBA_niche_shift_results_bg_spec.csv, BBS_niche_shift_results_bg_spec_hist81-83.csv, BBS_niche_shift_results_bg_US_hist81-83.csv, BBS_niche_shift_results_bg_spec_hist96-98.csv, BBS_niche_shift_results_bg_US_hist96-98.csv, plots/niche_dynamics_species
+- outputs: EBBA_niche_shift_results_bg_EBBA.csv, EBBA_niche_shift_results_bg_spec.csv, BBS_niche_shift_results_bg_spec_hist81-83.csv, BBS_niche_shift_results_bg_US_hist81-83.csv, BBS_niche_shift_results_bg_spec_hist88-90.csv, BBS_niche_shift_results_bg_US_hist88-90.csv, plots/niche_dynamics_species
 
 
 #### 4_(EBBA/BBS)_range_shift_analysis.R:
@@ -149,15 +149,12 @@ First, for each species the central range coordinates in the historic and recent
 The density grids of species occurrences are restricted to the EBBA land area (EBBA_ecospat_mask_change_cells_buffer20km.tif) and the conterminous US, Canada and Mexico, respectively. Schoener's D, the results of similarity tests with regard to range shifting (column names starting with "shift_p") and range conservatism (column names starting with "cons_p") with regard to analogue (column name containing "A") and non-analogue (column name containing "NA") conditions, as well as standardized indices for range dynamics (stability S, expansion E and unfilling U) are stored in a csv file.
 - outputs: EBBA_range_shift_results_bg_EBBA.csv, EBBA_range_shift_results_bg_spec.csv, BBS_range_shift_results_bg_spec_hist81-83.csv, BBS_range_shift_results_bg_US_hist81-83.csv, BBS_range_shift_results_bg_spec_hist96-98.csv, BBS_range_shift_results_bg_US_hist96-98.csv, plots/range_dynamics_species
 
-#### 5_BioShifts_explorations.R:
-Exploring the BioShifts dataset (Lenoir et al. 2020) for the selected EBBA and BBS species.
+#### 4_trait_analysis.R and 4_prep_phylo_data.R
+Scripts to prepare the trait and phylogenetic data and run phylogenetic regression models, incl. permutation approach to quantify variable importance.
 
-#### 5_(EBBA/BBS)_plots_results.R:
+#### 5_(EBBA/BBS)_plots_results.R and 5_joint_plots_results.R:
 Scripts to produce the plots (see "plots" section).
 
 
 #### 5_trait_plots.R:
 Script to produce exploratory plots regarding the relationship between species traits and range / niche dynamics (see "plots" section).
-
-
-The folder <em>deprecated</em> contains a preliminary workflow for the whole project.
