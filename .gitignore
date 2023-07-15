@@ -30,3 +30,4 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 Data/PhyloBirdsHackett1_63.rdata
+Data/AVONET Supplementary dataset 1.xlsx
