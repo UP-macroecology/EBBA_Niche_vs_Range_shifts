@@ -31,3 +31,4 @@ vignettes/*.pdf
 .Renviron
 Data/PhyloBirdsHackett1_63.rdata
 Data/AVONET Supplementary dataset 1.xlsx
+scripts/deprecated/
