@@ -1,8 +1,17 @@
-# Patterns of niche and range shifts in European and North American breeding birds under climate change
+# Climate-induced range and niche shifts in European and North American breeding birds" 
+by Damaris Zurell, Katrin Schifferle, Sergi Herrando, Verena Keller, Aleksi Lehikoinen, Thomas Sattler, Levin Wiedenroth
 
-Project investigating niche and range shifts of breeding birds in Europe and in the conterminous US. For European breeding bird species versions 1 and 2 of the European Breeding Bird Atlas (EBBA) are compared, for North American species data of the North American Breeding Bird Survey (BBS) from the 1980s/1990s are compared to data from the 2010s.
+**Summary**: Species respond dynamically to climate change leading to transient dynamics and time lagged range shifts. In consequence, species may not occupy their full climatic niche during range shifting. Here, we aim to assess niche tracking during recent range shifts of European and North American birds. Using data from two European bird atlases and from the North American Breeding Bird Survey between 1980s-2010s, we analyse range overlap and climate niche overlap based on kernel density estimation and null model analyses. Phylogenetic multiple regression was used to assess the effect of species morphological, ecological and biogeographic traits on range and niche metrics. European birds shifted their ranges north and north-eastwards, North American birds westwards. Trailing range edges were more inert than leading range edges in both regions. Although transient dynamics were more pronounced in North America, we found niche expansion was more common than niche unfilling in both regions. Trait analyses revealed some commonalities but also important differences between the two regions. Overall, dispersal limitations were minor in both regions while severe lagging of trailing range edges could be indicative of extinction debts. Differences between regions suggest different underlying mechanisms, for example related to land use history, that should be further investigated.
 
-## General workflow and current status:
+**Keywords**: range tracking, niche tracking, transient dynamics, extinction debts, colonisation credit, dispersal limitation
+
+This repository contains the R scripts needed to reproduce all results as well as results and plots.
+
+**Funding**: This research was supported by Deutsche Forschungsgemeinschaft (DFG) under grant agreements No. ZU 361/1-1 and ZU 361/6-1.
+
+---
+
+## General workflow:
 
 ### EBBA analysis:
 
@@ -154,7 +163,6 @@ Scripts to prepare the trait and phylogenetic data and run phylogenetic regressi
 
 #### 5_(EBBA/BBS)_plots_results.R and 5_joint_plots_results.R:
 Scripts to produce the plots (see "plots" section).
-
 
 #### 5_trait_plots.R:
 Script to produce exploratory plots regarding the relationship between species traits and range / niche dynamics (see "plots" section).
