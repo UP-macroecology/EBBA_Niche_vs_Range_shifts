@@ -362,26 +362,26 @@ spec_cons_EBBA <- c(#"", # niche abandonment
 )
 
 # rescale
-niche_results_BBS_na <- niche_results_BBS %>% 
+niche_results_BBS_an <- niche_results_BBS %>% 
   select(-c("niche_abandonment_std","niche_pioneering_std"))
-sum_analog_BBS <- niche_results_BBS_na %>% 
+sum_analog_BBS <- niche_results_BBS_an %>% 
   select(starts_with("niche")) %>%
   rowSums()
-niche_results_BBS_na$niche_expansion_std <- niche_results_BBS_na$niche_expansion_std/sum_analog_BBS
-niche_results_BBS_na$niche_unfilling_std <- niche_results_BBS_na$niche_unfilling_std/sum_analog_BBS
-niche_results_BBS_na$niche_stability_std <- niche_results_BBS_na$niche_stability_std/sum_analog_BBS
+niche_results_BBS_an$niche_expansion_std <- niche_results_BBS_an$niche_expansion_std/sum_analog_BBS
+niche_results_BBS_an$niche_unfilling_std <- niche_results_BBS_an$niche_unfilling_std/sum_analog_BBS
+niche_results_BBS_an$niche_stability_std <- niche_results_BBS_an$niche_stability_std/sum_analog_BBS
 
-niche_results_EBBA_na <- niche_results_EBBA %>% 
+niche_results_EBBA_an <- niche_results_EBBA %>% 
   select(-c("niche_abandonment_std","niche_pioneering_std"))
-sum_analog_EBBA <- niche_results_EBBA_na %>% 
+sum_analog_EBBA <- niche_results_EBBA_an %>% 
   select(starts_with("niche")) %>%
   rowSums()
-niche_results_EBBA_na$niche_expansion_std <- niche_results_EBBA_na$niche_expansion_std/sum_analog_EBBA
-niche_results_EBBA_na$niche_unfilling_std <- niche_results_EBBA_na$niche_unfilling_std/sum_analog_EBBA
-niche_results_EBBA_na$niche_stability_std <- niche_results_EBBA_na$niche_stability_std/sum_analog_EBBA
+niche_results_EBBA_an$niche_expansion_std <- niche_results_EBBA_an$niche_expansion_std/sum_analog_EBBA
+niche_results_EBBA_an$niche_unfilling_std <- niche_results_EBBA_an$niche_unfilling_std/sum_analog_EBBA
+niche_results_EBBA_an$niche_stability_std <- niche_results_EBBA_an$niche_stability_std/sum_analog_EBBA
 
 # join niche and range shift results, convert to long format:
-niche_range_df_BBS <- niche_results_BBS_na %>% 
+niche_range_df_BBS <- niche_results_BBS_an %>% 
   left_join(range_results_BBS, by = "species", suffix = c("_niche", "_range")) %>% 
   pivot_longer(cols = ends_with("_std"),
                names_to = c("category", "metric"), names_pattern = "(.*)_(.*)_",
@@ -389,7 +389,7 @@ niche_range_df_BBS <- niche_results_BBS_na %>%
   mutate(metric = factor(metric, levels = c("unfilling", "stability", "expansion")))
 
 # join niche and range shift results, convert to long format:
-niche_range_df_EBBA <- niche_results_EBBA_na %>% 
+niche_range_df_EBBA <- niche_results_EBBA_an %>% 
   left_join(range_results_EBBA, by = "species", suffix = c("_niche", "_range")) %>% 
   pivot_longer(cols = ends_with("_std"),
                names_to = c("category", "metric"), names_pattern = "(.*)_(.*)_",
