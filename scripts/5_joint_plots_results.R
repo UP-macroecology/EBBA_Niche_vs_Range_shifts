@@ -302,6 +302,143 @@ p_BBS
 dev.off()
 
 
+#------------- Niche dynamic boxplots ---------------
+#------------ in analogue climate space -------------
+
+
+## niche BBS:
+niche_test_sign_BBS <- niche_results_BBS %>% 
+  dplyr::select(c(species, matches("cons_p_"))) %>%
+  summarise(across(.cols = where(is.numeric), 
+                   .fns = ~length(which(.x <= 0.05)), 
+                   .names = "{.col}_n_sig")) %>% 
+  mutate(across(everything(), ~ round(.x/length(sel_species_BBS)*100, 2)))
+
+## range BBS:
+range_test_sign_BBS <- range_results_BBS %>% 
+  dplyr::select(c(species, matches("cons_p_"))) %>% 
+  summarise(across(.cols = where(is.numeric), 
+                   .fns = ~length(which(.x <= 0.05)), 
+                   .names = "{.col}_n_sig")) %>% 
+  mutate(across(everything(), ~ round(.x/length(sel_species_BBS)*100, 2)))
+
+## Niche EBBA:
+niche_test_sign_EBBA <- niche_results_EBBA %>% 
+  dplyr::select(c(species, matches("cons_p_"))) %>%
+  summarise(across(.cols = where(is.numeric), 
+                   .fns = ~length(which(.x <= 0.05)), 
+                   .names = "{.col}_n_sig")) %>% 
+  mutate(across(everything(), ~ round(.x/length(sel_species_EBBA)*100, 2)))
+
+## range EBBA:
+range_test_sign_EBBA <- range_results_EBBA %>% 
+  dplyr::select(c(species, matches("cons_p_"))) %>% 
+  summarise(across(.cols = where(is.numeric), 
+                   .fns = ~length(which(.x <= 0.05)), 
+                   .names = "{.col}_n_sig")) %>% 
+  mutate(across(everything(), ~ round(.x/length(sel_species_EBBA)*100, 2)))
+
+
+# BBS species (%) with significant niche tracking and range lagging
+spec_cons_BBS <- c(#"", # niche abandonment
+                   niche_test_sign_BBS$cons_p_U_A_n_sig, # niche unfilling
+                   niche_test_sign_BBS$cons_p_S_A_n_sig, # niche stability
+                   niche_test_sign_BBS$cons_p_E_A_n_sig, # niche expansion
+                   #"", # niche pioneering,
+                   range_test_sign_BBS$cons_p_U_A_n_sig, # range unfilling
+                   range_test_sign_BBS$cons_p_S_A_n_sig, # range stabiliy
+                   range_test_sign_BBS$cons_p_E_A_n_sig # range expansion
+)
+
+# EBBA species (%) with significant niche tracking and range lagging
+spec_cons_EBBA <- c(#"", # niche abandonment
+                    niche_test_sign_EBBA$cons_p_U_A_n_sig, # niche unfilling
+                    niche_test_sign_EBBA$cons_p_S_A_n_sig, # niche stability
+                    niche_test_sign_EBBA$cons_p_E_A_n_sig, # niche expansion
+                    #"", # niche pioneering,
+                    range_test_sign_EBBA$cons_p_U_A_n_sig, # range unfilling
+                    range_test_sign_EBBA$cons_p_S_A_n_sig, # range stabiliy
+                    range_test_sign_EBBA$cons_p_E_A_n_sig # range expansion
+)
+
+# join niche and range shift results, convert to long format:
+niche_range_df_BBS <- niche_results_BBS %>% 
+  select(-c("niche_abandonment_std","niche_pioneering_std")) %>%
+  left_join(range_results_BBS, by = "species", suffix = c("_niche", "_range")) %>% 
+  pivot_longer(cols = ends_with("_std"),
+               names_to = c("category", "metric"), names_pattern = "(.*)_(.*)_",
+               values_to = "value") %>% 
+  mutate(metric = factor(metric, levels = c("unfilling", "stability", "expansion")))
+
+# join niche and range shift results, convert to long format:
+niche_range_df_EBBA <- niche_results_EBBA %>% 
+  select(-c("niche_abandonment_std","niche_pioneering_std")) %>%
+  left_join(range_results_EBBA, by = "species", suffix = c("_niche", "_range")) %>% 
+  pivot_longer(cols = ends_with("_std"),
+               names_to = c("category", "metric"), names_pattern = "(.*)_(.*)_",
+               values_to = "value") %>% 
+  mutate(metric = factor(metric, levels = c("unfilling", "stability", "expansion")))
+
+
+
+# data set for labels:
+labelsdat <- tibble(category = c(rep("niche", 3), rep("range", 3)),
+                    metric = factor(rep(c("unfilling", "stability", "expansion"),2), 
+                                    levels = c("abandonment", "unfilling", "stability", "expansion", "pioneering")),
+                    spec_cons_BBS = spec_cons_BBS,
+                    spec_cons_EBBA = spec_cons_EBBA,
+                    ypos_higher = 110)
+
+# plot:
+p_EBBA <- ggplot(niche_range_df_EBBA, aes(x = category, y = value*100, fill = metric)) + # aes given inside ggplot() necessary for geom_text
+  geom_boxplot(lwd = 0.1, outlier.size = 0.7, outlier.colour = "grey30", width = 0.9,
+               position = position_dodge2(width = 1, preserve = "single")) +
+  #facet_grid(~ category, scales = "free") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  ylab("Metrics [%]") +
+  xlab("") +
+  scale_fill_viridis_d("Metrics") +
+  scale_y_continuous(breaks = seq(0, 100, 20), expand = expansion(add = 10)) +
+  annotate(geom = "text", label = "% species niche tracking:", 
+           x = 1, y = 118, hjust = 0.5, vjust = 0, size = 3) + # xx
+  annotate(geom = "text", label = "% species range lagging:", 
+           x = 2, y = 118, hjust = 0.5, vjust = 0, size = 3) + # xx
+  geom_text(data = labelsdat, aes(label = spec_cons_EBBA, y = ypos_higher),
+            position = position_dodge2(width = 0.9, preserve = "single"), size = 3) +
+  geom_hline(yintercept = 105) 
+
+p_BBS <- ggplot(niche_range_df_BBS, aes(x = category, y = value*100, fill = metric)) + # aes given inside ggplot() necessary for geom_text
+  geom_boxplot(lwd = 0.1, outlier.size = 0.7, outlier.colour = "grey30", width = 0.9,
+               position = position_dodge2(width = 1, preserve = "single")) +
+  #facet_grid(~ category, scales = "free") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  ylab("Metrics [%]") +
+  xlab("") +
+  scale_fill_viridis_d("Metrics") +
+  scale_y_continuous(breaks = seq(0, 100, 20), expand = expansion(add = 10)) +
+  annotate(geom = "text", label = "% species niche tracking:", 
+           x = 1, y = 118, hjust = 0.5, vjust = 0, size = 3) + # xx
+  annotate(geom = "text", label = "% species range lagging:", 
+           x = 2, y = 118, hjust = 0.5, vjust = 0, size = 3) + # xx
+  geom_text(data = labelsdat, aes(label = spec_cons_BBS, y = ypos_higher),
+            position = position_dodge2(width = 0.9, preserve = "single"), size = 3) +
+  geom_hline(yintercept = 105) 
+
+
+# save plot:
+pdf(file = file.path("plots", "dynamics_boxplots", "EBBA_boxplot_dynamics_bg_spec_analogClim.pdf"),
+    height = 3, width = 5.5)
+p_EBBA
+dev.off()
+
+pdf(file = file.path("plots", "dynamics_boxplots", "BBS_boxplot_dynamics_bg_spec_hist81-83_analogClim.pdf"),
+    height = 3, width = 5.5)
+p_BBS
+dev.off()
+
+
 
 
 #################################
