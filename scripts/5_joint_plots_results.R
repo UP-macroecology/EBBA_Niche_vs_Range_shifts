@@ -361,9 +361,27 @@ spec_cons_EBBA <- c(#"", # niche abandonment
                     range_test_sign_EBBA$cons_p_E_A_n_sig # range expansion
 )
 
+# rescale
+niche_results_BBS_na <- niche_results_BBS %>% 
+  select(-c("niche_abandonment_std","niche_pioneering_std"))
+sum_analog_BBS <- niche_results_BBS_na %>% 
+  select(starts_with("niche")) %>%
+  rowSums()
+niche_results_BBS_na$niche_expansion_std <- niche_results_BBS_na$niche_expansion_std/sum_analog_BBS
+niche_results_BBS_na$niche_unfilling_std <- niche_results_BBS_na$niche_unfilling_std/sum_analog_BBS
+niche_results_BBS_na$niche_stability_std <- niche_results_BBS_na$niche_stability_std/sum_analog_BBS
+
+niche_results_EBBA_na <- niche_results_EBBA %>% 
+  select(-c("niche_abandonment_std","niche_pioneering_std"))
+sum_analog_EBBA <- niche_results_EBBA_na %>% 
+  select(starts_with("niche")) %>%
+  rowSums()
+niche_results_EBBA_na$niche_expansion_std <- niche_results_EBBA_na$niche_expansion_std/sum_analog_EBBA
+niche_results_EBBA_na$niche_unfilling_std <- niche_results_EBBA_na$niche_unfilling_std/sum_analog_EBBA
+niche_results_EBBA_na$niche_stability_std <- niche_results_EBBA_na$niche_stability_std/sum_analog_EBBA
+
 # join niche and range shift results, convert to long format:
-niche_range_df_BBS <- niche_results_BBS %>% 
-  select(-c("niche_abandonment_std","niche_pioneering_std")) %>%
+niche_range_df_BBS <- niche_results_BBS_na %>% 
   left_join(range_results_BBS, by = "species", suffix = c("_niche", "_range")) %>% 
   pivot_longer(cols = ends_with("_std"),
                names_to = c("category", "metric"), names_pattern = "(.*)_(.*)_",
@@ -371,14 +389,12 @@ niche_range_df_BBS <- niche_results_BBS %>%
   mutate(metric = factor(metric, levels = c("unfilling", "stability", "expansion")))
 
 # join niche and range shift results, convert to long format:
-niche_range_df_EBBA <- niche_results_EBBA %>% 
-  select(-c("niche_abandonment_std","niche_pioneering_std")) %>%
+niche_range_df_EBBA <- niche_results_EBBA_na %>% 
   left_join(range_results_EBBA, by = "species", suffix = c("_niche", "_range")) %>% 
   pivot_longer(cols = ends_with("_std"),
                names_to = c("category", "metric"), names_pattern = "(.*)_(.*)_",
                values_to = "value") %>% 
   mutate(metric = factor(metric, levels = c("unfilling", "stability", "expansion")))
-
 
 
 # data set for labels:
