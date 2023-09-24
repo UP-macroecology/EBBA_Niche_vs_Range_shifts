@@ -18,8 +18,8 @@ data_dir <- file.path("data", "BBS_analysis")
 plots_dir <- file.path("plots")
 
 # which historic time period should be used:
-hist_years <- 1980:1983 # maximum gap between historic and recent time period
-# hist_years <- 1987:1990 # similar gap between historic and recent time period as in EBBA analysis
+#hist_years <- 1980:1983 # maximum gap between historic and recent time period
+hist_years <- 1987:1990 # similar gap between historic and recent time period as in EBBA analysis
 
 # environmental background: presences and absences within 500 km buffer around presences (TRUE) or all true absences within conterminous US (FALSE):
 bg_spec <- TRUE
