@@ -578,10 +578,10 @@ traits_res_tb <- traits_res %>%
   # mutate(term=Trait, estimate=range_stab_coef, std.error=range_stab_stderr, statistic=range_stab_coef/range_stab_stderr, p.value=range_stab_p, model=region, varimp=range_stab_varimp) %>%
   # mutate(term=Trait, estimate=range_unf_coef, std.error=range_unf_stderr, statistic=range_unf_coef/range_unf_stderr, p.value=range_unf_p, model=region, varimp=range_unf_varimp) %>%
   # mutate(term=Trait, estimate=range_exp_coef, std.error=range_exp_stderr, statistic=range_exp_coef/range_exp_stderr, p.value=range_exp_p, model=region, varimp=range_exp_varimp) %>%
-  mutate(term=Trait, estimate=nicheD_coef, std.error=nicheD_stderr, statistic=nicheD_coef/nicheD_stderr, p.value=nicheD_p, model=region, varimp=nicheD_varimp) %>%
+  # mutate(term=Trait, estimate=nicheD_coef, std.error=nicheD_stderr, statistic=nicheD_coef/nicheD_stderr, p.value=nicheD_p, model=region, varimp=nicheD_varimp) %>%
   # mutate(term=Trait, estimate=niche_stab_coef, std.error=niche_stab_stderr, statistic=niche_stab_coef/niche_stab_stderr, p.value=niche_stab_p, model=region, varimp=niche_stab_varimp) %>%
   # mutate(term=Trait, estimate=niche_unf_coef, std.error=niche_unf_stderr, statistic=niche_unf_coef/niche_unf_stderr, p.value=niche_unf_p, model=region, varimp=niche_unf_varimp) %>%
-  # mutate(term=Trait, estimate=niche_exp_coef, std.error=niche_exp_stderr, statistic=niche_exp_coef/niche_exp_stderr, p.value=niche_exp_p, model=region, varimp=niche_exp_varimp) %>%
+  mutate(term=Trait, estimate=niche_exp_coef, std.error=niche_exp_stderr, statistic=niche_exp_coef/niche_exp_stderr, p.value=niche_exp_p, model=region, varimp=niche_exp_varimp) %>%
   select(term, estimate, std.error, statistic, p.value, model, varimp) %>% 
   filter(term %in% covariates)
 varimp_US <- traits_res_tb %>% filter(model=="US") %>% select(varimp)
@@ -589,7 +589,8 @@ varimp_Europe <- traits_res_tb %>% filter(model=="Europe") %>% select(varimp)
   
 quartz(w=5,h=3)
 dwplot(traits_res_tb, 
-       vline = geom_vline(xintercept = 0, colour = "grey60", linetype = 2)
+       vline = geom_vline(xintercept = 0, colour = "grey80", linetype = 2),
+       dot_args = list(aes(shape = model)),
        ) %>% 
   relabel_predictors(
     c(
@@ -606,68 +607,74 @@ dwplot(traits_res_tb,
   # ggtitle("Range stability") +
   # ggtitle("Range unfilling") +
   # ggtitle("Range expansion") +
-  ggtitle("Niche overlap - Schoener's D") +
+  # ggtitle("Niche overlap - Schoener's D") +
   # ggtitle("Niche stability") +
   # ggtitle("Niche unfilling") +
-  # ggtitle("Niche expansion") +
-  theme_bw(base_size = 12) + 
+  ggtitle("Niche expansion") +
+  # theme_bw(base_size = 12) + 
+  theme_classic() +
   xlab("Coefficient Estimate") + 
   ylab("") + 
-  scale_colour_hue(
-    name = "Region") +
+  # scale_colour_hue(name = "Region") +
+  scale_color_manual(values = c("Europe" = "#440154FF", "US" = "#20A387FF"), name = "Region") +
+  scale_shape_discrete(
+    name = "Region",
+    breaks = c(0, 1),
+    labels = c("Automatic", "Manual")
+  )  +
   # annotate("text", y = 8:1-.2,
   #          x = max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error), na.rm=T) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
   #          label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), ""),
   #          hjust=1, size=3, colour="#F8766D") +
   annotate("text", y = c(8:1)[8]-.2, 
            x = traits_res_tb$estimate[8] + (1.96*traits_res_tb$std.error[8]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[8], hjust=1, size=3, colour="#F8766D") +
+           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[8], hjust=1, size=3, colour="#20A387FF") +
   annotate("text", y = c(8:1)[7]-.2, 
            x = traits_res_tb$estimate[7] + (1.96*traits_res_tb$std.error[7]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[7], hjust=1, size=3, colour="#F8766D") +
+           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[7], hjust=1, size=3, colour="#20A387FF") +
   annotate("text", y = c(8:1)[6]-.2, 
            x = traits_res_tb$estimate[6] + (1.96*traits_res_tb$std.error[6]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[6], hjust=1, size=3, colour="#F8766D") +
+           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[6], hjust=1, size=3, colour="#20A387FF") +
   annotate("text", y = c(8:1)[5]-.2, 
            x = traits_res_tb$estimate[5] + (1.96*traits_res_tb$std.error[5]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[5], hjust=1, size=3, colour="#F8766D") +
+           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[5], hjust=1, size=3, colour="#20A387FF") +
   annotate("text", y = c(8:1)[4]-.2, 
            x = traits_res_tb$estimate[4] + (1.96*traits_res_tb$std.error[4]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[4], hjust=1, size=3, colour="#F8766D") +
+           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[4], hjust=1, size=3, colour="#20A387FF") +
   annotate("text", y = c(8:1)[3]-.2, 
            x = traits_res_tb$estimate[3] + (1.96*traits_res_tb$std.error[3]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[3], hjust=1, size=3, colour="#F8766D") +
+           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[3], hjust=1, size=3, colour="#20A387FF") +
   annotate("text", y = c(8:1)[2]-.2, 
            x = traits_res_tb$estimate[2] + (1.96*traits_res_tb$std.error[2]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[2], hjust=1, size=3, colour="#F8766D") +
+           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[2], hjust=1, size=3, colour="#20A387FF") +
   annotate("text", y = c(8:1)[1]-.2, 
            x = traits_res_tb$estimate[1] + (1.96*traits_res_tb$std.error[1]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[1], hjust=1, size=3, colour="#F8766D") +
+           label = ifelse(!is.na(as.numeric(varimp_US[[1]])), paste0(round(as.numeric(varimp_US[[1]])*100,0),"%"), "")[1], hjust=1, size=3, colour="#20A387FF") +
   # annotate("text", y = 8:1+.2, 
   #          x = max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error), na.rm=T) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
   #          label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), ""), hjust=1, size=3, colour="#00BFC4")
   annotate("text", y = c(8:1)[8]+.2, 
            x = traits_res_tb$estimate[8+8] + (1.96*traits_res_tb$std.error[8+8]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[8], hjust=1, size=3, colour="#00BFC4") +
+           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[8], hjust=1, size=3, colour="#440154FF") +
 annotate("text", y = c(8:1)[7]+.2, 
          x = traits_res_tb$estimate[8+7] + (1.96*traits_res_tb$std.error[8+7]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-         label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[7], hjust=1, size=3, colour="#00BFC4") +
+         label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[7], hjust=1, size=3, colour="#440154FF") +
   annotate("text", y = c(8:1)[6]+.2, 
            x = traits_res_tb$estimate[8+6] + (1.96*traits_res_tb$std.error[8+6]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[6], hjust=1, size=3, colour="#00BFC4") +
+           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[6], hjust=1, size=3, colour="#440154FF") +
   annotate("text", y = c(8:1)[5]+.2, 
            x = traits_res_tb$estimate[8+5] + (1.96*traits_res_tb$std.error[8+5]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[5], hjust=1, size=3, colour="#00BFC4") +
+           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[5], hjust=1, size=3, colour="#440154FF") +
   annotate("text", y = c(8:1)[4]+.2, 
            x = traits_res_tb$estimate[8+4] + (1.96*traits_res_tb$std.error[8+4]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[4], hjust=1, size=3, colour="#00BFC4") +
+           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[4], hjust=1, size=3, colour="#440154FF") +
   annotate("text", y = c(8:1)[3]+.2, 
            x = traits_res_tb$estimate[8+3] + (1.96*traits_res_tb$std.error[8+3]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[3], hjust=1, size=3, colour="#00BFC4") +
+           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[3], hjust=1, size=3, colour="#440154FF") +
   annotate("text", y = c(8:1)[2]+.2, 
            x = traits_res_tb$estimate[8+2] + (1.96*traits_res_tb$std.error[8+2]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[2], hjust=1, size=3, colour="#00BFC4") +
+           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[2], hjust=1, size=3, colour="#440154FF") +
   annotate("text", y = c(8:1)[1]+.2, 
            x = traits_res_tb$estimate[8+1] + (1.96*traits_res_tb$std.error[8+1]) + diff(c(min(traits_res_tb$estimate - (1.96*traits_res_tb$std.error),na.rm=T), max(traits_res_tb$estimate + (1.96*traits_res_tb$std.error),na.rm=T)))*.15, 
-           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[1], hjust=1, size=3, colour="#00BFC4")
+           label = ifelse(!is.na(as.numeric(varimp_Europe[[1]])), paste0(round(as.numeric(varimp_Europe[[1]])*100,0),"%"), "")[1], hjust=1, size=3, colour="#440154FF")
   
